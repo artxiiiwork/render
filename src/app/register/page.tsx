@@ -15,10 +15,14 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   // Предвыбор роли по ссылке с лендинга (?role=editor / ?role=employer).
+  // Читаем адрес только после монтирования: так и сервер, и первый клиентский
+  // рендер дают одинаковое значение (EDITOR), а роль подставляется уже потом —
+  // это убирает рассинхрон при гидрации. Эффект здесь именно для этого.
   useEffect(() => {
     const r = new URLSearchParams(window.location.search).get("role");
-    if (r === "employer") setRole("EMPLOYER");
-    else if (r === "editor") setRole("EDITOR");
+    if (r !== "employer" && r !== "editor") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRole(r === "employer" ? "EMPLOYER" : "EDITOR");
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

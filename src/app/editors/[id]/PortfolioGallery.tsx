@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AddPortfolioCard from "./AddPortfolioCard";
 import {
@@ -25,8 +25,15 @@ export default function PortfolioGallery({
 }) {
   const router = useRouter();
   const [list, setList] = useState<Item[]>(items);
-  // Когда сервер пришлёт обновлённые данные — синхронизируемся.
-  useEffect(() => setList(items), [items]);
+  // Когда сервер пришлёт обновлённые данные (после добавления/удаления/
+  // перетаскивания + router.refresh) — синхронизируемся. Это рекомендованный
+  // React способ «подстроить состояние под изменившийся проп» прямо при
+  // рендере, без эффекта: сравниваем ссылку на массив с предыдущей.
+  const [prevItems, setPrevItems] = useState(items);
+  if (items !== prevItems) {
+    setPrevItems(items);
+    setList(items);
+  }
 
   // Перетаскивание.
   const [dragId, setDragId] = useState<string | null>(null);
