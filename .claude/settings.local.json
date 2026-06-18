@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/vikto/Downloads/session-restore && wc -l 19186984-d51e-4492-b8e2-cf14351678e6.jsonl && echo \"---SIZE---\" && du -h 19186984-d51e-4492-b8e2-cf14351678e6.jsonl)"
+    ]
+  }
+}

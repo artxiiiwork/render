@@ -1,0 +1,294 @@
+// Это "чертёж" базы данных RENDER — доски вакансий для видеомонтажёров.
+// Здесь понятным списком описано, какие данные и как мы храним.
+// Prisma читает этот файл и сама создаёт нужные таблицы в базе.
+//
+// ВАЖНО: RENDER — НЕ биржа. Площадка НЕ проводит деньги между сторонами.
+// Её задача — свести монтажёра и работодателя и дать им связаться.
+// Поэтому здесь нет заказов, эскроу, платежей, споров и выплат.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Справочники (фиксированные списки значений)
+// ─────────────────────────────────────────────────────────────
+
+// Роль пользователя, выбирается при регистрации.
+enum Role {
+  EDITOR // монтажёр (соискатель): резюме, шоурил, отклики
+  EMPLOYER // работодатель: блогер / студия / агентство / бренд
+}
+
+// Формат контента — и для специализации монтажёра, и для вакансии.
+enum ContentFormat {
+  LONG_FORM // длинные ролики YouTube
+  SHORTS // YouTube Shorts
+  REELS // Instagram Reels
+  TIKTOK // TikTok
+  CLIPS // клипы и нарезка
+}
+
+// Формат найма (как работают вместе).
+enum WorkFormat {
+  STAFF // штат
+  ONGOING // постоянное сотрудничество
+  PROJECT // разовые проекты
+}
+
+// Занятость по вакансии.
+enum Employment {
+  FULL_TIME // полная
+  PART_TIME // частичная
+  PROJECT_BASED // проектная
+}
+
+// За что считаем оплату (для вилки в резюме и вакансии).
+enum PayPeriod {
+  PER_PROJECT // за проект/ролик
+  PER_HOUR // за час
+  PER_MONTH // за месяц (зарплата)
+}
+
+// Тип работодателя.
+enum EmployerType {
+  BLOGGER // частный блогер / канал
+  STUDIO // студия
+  AGENCY // агентство
+  BRAND // бренд / компания
+}
+
+// Доступность монтажёра прямо сейчас.
+enum EditorStatus {
+  SEEKING // активно ищу работу
+  OPEN // открыт к предложениям
+  NOT_LOOKING // сейчас не ищу
+}
+
+// Статус вакансии.
+enum VacancyStatus {
+  OPEN // открыта (видна в каталоге, можно откликаться)
+  CLOSED // закрыта (нашли человека / снята)
+}
+
+// Статус модерации (резюме и вакансии проверяет админ).
+enum ModerationStatus {
+  PENDING // на проверке (по умолчанию после создания)
+  APPROVED // одобрено, видно всем
+  REJECTED // отклонено модератором
+}
+
+// Что происходит с откликом монтажёра.
+enum ApplicationStatus {
+  NEW // новый, работодатель ещё не смотрел
+  VIEWED // просмотрен
+  INVITED // приглашён на разговор
+  REJECTED // отказ
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Пользователи и профили
+// ─────────────────────────────────────────────────────────────
+
+// Общие данные для всех пользователей (и монтажёров, и работодателей).
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String // хранится зашифрованный пароль, не сам пароль
+  name         String
+  role         Role
+  isAdmin      Boolean  @default(false) // администратор платформы (модерация)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // У пользователя есть ОДИН из профилей — по его роли.
+  editorProfile   EditorProfile?
+  employerProfile EmployerProfile?
+
+  // Вакансии, которые разместил этот работодатель.
+  vacancies Vacancy[] @relation("EmployerVacancies")
+
+  // Отклики, которые оставил этот монтажёр.
+  applications Application[]
+
+  // Личные переписки (как работодатель и как монтажёр).
+  conversationsAsEmployer Conversation[] @relation("EmployerConversations")
+  conversationsAsEditor   Conversation[] @relation("EditorConversations")
+  // Отправленные сообщения.
+  sentMessages Message[]
+}
+
+// Резюме монтажёра (соискателя).
+model EditorProfile {
+  id              String          @id @default(cuid())
+  headline        String // заголовок/специализация, напр. "Монтажёр Shorts"
+  bio             String? // о себе
+  avatarUrl       String? // ссылка на аватар
+  coverUrl        String? // обложка-шапка профиля (широкое фото сверху)
+  skills          String[] // навыки (теги)
+  software        String[] // софт: Premiere, DaVinci, After Effects, CapCut…
+  formats         ContentFormat[] // форматы, в которых работает
+  languages       String[] // языки
+  experienceYears Int? // опыт в годах, необязательно
+
+  // Желаемые условия работы.
+  workFormats WorkFormat[] // штат / постоянка / проекты — можно несколько
+  payMin      Int? // желаемая ставка/зарплата "от" (в рублях)
+  payMax      Int? // "до" (в рублях)
+  payPeriod   PayPeriod? // за проект / за час / за месяц
+
+  // Где и как.
+  city   String? // город
+  remote Boolean      @default(true) // готов работать удалённо
+  status EditorStatus @default(SEEKING) // доступность
+
+  // Модерация резюме.
+  moderation ModerationStatus @default(PENDING)
+
+  userId String @unique // привязка к пользователю (один к одному)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Портфолио и шоурил — список ссылок на видео.
+  portfolio PortfolioLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Профиль работодателя (блогер / студия / агентство / бренд).
+model EmployerProfile {
+  id          String       @id @default(cuid())
+  displayName String // название или имя
+  type        EmployerType // блогер / студия / агентство / бренд
+  description String? // описание
+  channelUrl  String? // ссылка на канал или сайт
+  logoUrl     String? // логотип
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Одна ссылка на видео в портфолио/шоуриле монтажёра (YouTube / Vimeo).
+model PortfolioLink {
+  id       String  @id @default(cuid())
+  url      String
+  title    String? // подпись к видео, необязательно
+  position Int     @default(0) // порядок в галерее (меньше — выше); меняется перетаскиванием
+
+  editorProfileId String
+  editorProfile   EditorProfile @relation(fields: [editorProfileId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Вакансии и отклики
+// ─────────────────────────────────────────────────────────────
+
+// Вакансия, которую размещает работодатель.
+model Vacancy {
+  id          String          @id @default(cuid())
+  title       String // заголовок
+  description String // описание
+  workFormat  WorkFormat // штат / постоянка / проект
+  employment  Employment // полная / частичная / проектная
+  formats     ContentFormat[] // платформа и тип контента
+  software    String[] // требуемый софт
+  skills      String[] // требуемые навыки
+
+  // Вилка оплаты.
+  payMin    Int? // "от" (в рублях)
+  payMax    Int? // "до" (в рублях)
+  payPeriod PayPeriod? // за проект / за час / за месяц
+
+  // Где.
+  city   String? // город
+  remote Boolean @default(true) // удалёнка
+
+  status     VacancyStatus    @default(OPEN)
+  moderation ModerationStatus @default(PENDING)
+
+  // ── Задел под монетизацию (пока выключено, включим позже без переделки) ──
+  isPromoted    Boolean   @default(false) // платное продвижение в каталоге
+  promotedUntil DateTime? // до какого момента продвигается
+
+  // Кто разместил (работодатель).
+  employerId String
+  employer   User   @relation("EmployerVacancies", fields: [employerId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Отклик монтажёра на вакансию.
+// Денег и сделок здесь нет — это просто заявка и контакт.
+model Application {
+  id      String            @id @default(cuid())
+  message String // сопроводительное сообщение
+  status  ApplicationStatus @default(NEW)
+
+  vacancyId String
+  vacancy   Vacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+
+  editorId String
+  editor   User   @relation(fields: [editorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Один монтажёр — один отклик на конкретную вакансию.
+  @@unique([vacancyId, editorId])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Личные сообщения (чат между работодателем и монтажёром)
+// ─────────────────────────────────────────────────────────────
+
+// Переписка двух сторон. Одна нить на пару "работодатель + монтажёр".
+model Conversation {
+  id String @id @default(cuid())
+
+  employerId String
+  employer   User   @relation("EmployerConversations", fields: [employerId], references: [id], onDelete: Cascade)
+
+  editorId String
+  editor   User   @relation("EditorConversations", fields: [editorId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  // Когда каждая сторона последний раз открывала переписку — для счётчика непрочитанного.
+  employerLastReadAt DateTime?
+  editorLastReadAt   DateTime?
+
+  // Канал поддержки: переписка пользователя со «службой поддержки RENDER»
+  // (employer-сторона — системный аккаунт поддержки). Помечается отдельно в UI.
+  isSupport Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // обновляется при новом сообщении — для сортировки
+
+  @@unique([employerId, editorId])
+}
+
+// Одно сообщение в переписке.
+model Message {
+  id   String @id @default(cuid())
+  text String
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
