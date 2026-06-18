@@ -1,9 +1,17 @@
-// "Приёмная" загрузки картинок (аватар монтажёра, логотип работодателя).
-// Пока сохраняем файл прямо в проект (public/uploads) и отдаём ссылку на него.
-// Ближе к запуску заменим на облачное хранилище (Яндекс Object Storage),
-// при этом форма и поле в базе не изменятся — изменится только этот файл.
+// "Приёмная" загрузки картинок (аватар монтажёра, логотип/обложка работодателя).
+//
+// Два режима — выбираются автоматически:
+//  • ПРОДАКШЕН (Vercel): если задан BLOB_READ_WRITE_TOKEN, файл уходит в
+//    облачное хранилище Vercel Blob и возвращается постоянная ссылка. Это нужно
+//    потому, что у Vercel диск временный — локально сохранённые файлы пропадают.
+//  • РАЗРАБОТКА (на своём компьютере): токена нет → сохраняем в public/uploads,
+//    как раньше, чтобы не требовать настройки облака во время разработки.
+//
+// Форма (ImageUpload.tsx) и поля в базе (avatarUrl/logoUrl/coverUrl) не меняются —
+// и там, и там это просто ссылка на картинку.
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { put } from "@vercel/blob";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { randomUUID } from "crypto";
@@ -44,11 +52,22 @@ export async function POST(req: Request) {
     );
   }
 
-  // Сохраняем под случайным именем, чтобы файлы не перетирали друг друга.
+  // Случайное имя, чтобы файлы не перетирали друг друга.
+  const fileName = `${randomUUID()}.${ext}`;
+
+  // ── Продакшен: облачное хранилище Vercel Blob ──
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`uploads/${fileName}`, file, {
+      access: "public",
+      contentType: file.type,
+    });
+    return NextResponse.json({ url: blob.url });
+  }
+
+  // ── Разработка: сохраняем локально в public/uploads ──
   const bytes = Buffer.from(await file.arrayBuffer());
   const dir = join(process.cwd(), "public", "uploads");
   await mkdir(dir, { recursive: true });
-  const fileName = `${randomUUID()}.${ext}`;
   await writeFile(join(dir, fileName), bytes);
 
   return NextResponse.json({ url: `/uploads/${fileName}` });
