@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"EDITOR" | "EMPLOYER">("EDITOR");
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +29,10 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!consent) {
+      setError("Подтвердите согласие на обработку персональных данных");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -152,6 +157,28 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Согласие на обработку персональных данных (152-ФЗ). */}
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              required
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              Я соглашаюсь на обработку моих персональных данных и принимаю{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="text-accent hover:underline"
+              >
+                Политику обработки персональных данных
+              </Link>
+              .
+            </span>
+          </label>
+
           {error && (
             <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">
               {error}
@@ -160,7 +187,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !consent}
             className="btn-accent w-full px-4 py-2.5 disabled:opacity-50"
           >
             {loading ? "Создаём аккаунт…" : "Зарегистрироваться"}

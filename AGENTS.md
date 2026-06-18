@@ -98,19 +98,25 @@ RENDER — **доска вакансий и резюме** для видеомо
   при ошибке P1001 (до 3 попыток), чтобы холодный старт не выдавал 500.
 - Загрузка картинок (аватар/логотип/обложка): компонент
   `src/components/ImageUpload.tsx` + маршрут `src/app/api/upload/route.ts`.
-  Маршрут работает в двух режимах автоматически: если задан
-  `BLOB_READ_WRITE_TOKEN` (продакшен на Vercel) — файл уходит в облако
-  **Vercel Blob** (`@vercel/blob`, `put(...)`), иначе (локальная разработка) —
-  сохраняется в `public/uploads` (в git не попадают). Форма и поля в базе
-  (`avatarUrl`/`logoUrl`/`coverUrl`) одинаковы для обоих режимов — это просто
-  ссылка. На Vercel нужно создать Blob-хранилище (тогда токен подставится в env
-  автоматически). Если для РФ позже понадобится своё хранилище (Яндекс Object
-  Storage, 152-ФЗ) — менять только `route.ts`.
-- Деплой на Vercel: `package.json` → `build` запускает `prisma generate &&
-  next build`, плюс `postinstall: prisma generate` (без этого Vercel-сборка не
-  находит сгенерированный Prisma-клиент). Переменные окружения на Vercel:
-  `DATABASE_URL` (оригинальный хост Neon-пула, НЕ локальный IPv4-обход из `.env`),
-  `AUTH_SECRET`, `BLOB_READ_WRITE_TOKEN` (от Blob-хранилища).
+  Маршрут работает в двух режимах автоматически: если задан `S3_BUCKET` (+ доступы)
+  — файл уходит в **S3-совместимое объектное хранилище** (`@aws-sdk/client-s3`,
+  `PutObjectCommand`, `forcePathStyle: true`); подходит Timeweb S3, Яндекс Object
+  Storage и любое S3. Иначе (локальная разработка) — сохраняется в
+  `public/uploads` (в git не попадают). Поля в базе
+  (`avatarUrl`/`logoUrl`/`coverUrl`) и форма одинаковы — это просто ссылка.
+- 152-ФЗ (данные граждан РФ хранятся в РФ): размещаемся на **Timeweb Cloud**
+  (Apps + Managed PostgreSQL + S3, ДЦ в РФ). При регистрации — обязательная
+  галочка согласия на обработку ПДн (`src/app/register/page.tsx`, кнопка
+  заблокирована без неё). Страница политики — `src/app/privacy/page.tsx` (ШАБЛОН
+  с метками `[...]`, вписать реквизиты оператора), ссылки из регистрации и подвала
+  лендинга. Отдельно (вне кода): подать уведомление оператора ПДн в Роскомнадзор.
+- Деплой: `package.json` → `build` = `prisma generate && next build`, плюс
+  `postinstall: prisma generate` (иначе на хостинге не находится сгенерированный
+  Prisma-клиент). Переменные окружения в проде: `DATABASE_URL` (Managed
+  PostgreSQL в РФ — НЕ локальный IPv4-обход Neon из `.env`), `AUTH_SECRET`, и для
+  хранилища `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`,
+  `S3_SECRET_ACCESS_KEY`, при необходимости `S3_PUBLIC_BASE_URL`. После создания
+  базы накатить схему: `npx prisma migrate deploy` на новый `DATABASE_URL`.
 
 ## Дизайн
 - **Тёмная тема** по умолчанию.

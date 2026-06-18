@@ -88,8 +88,15 @@ export default function Home() {
 
       {/* Подвал */}
       <footer className="px-6 py-6 text-center text-sm text-muted/70">
-        RENDER — поиск и контакт между монтажёрами и работодателями. Оплату между
-        сторонами площадка не проводит.
+        <p>
+          RENDER — поиск и контакт между монтажёрами и работодателями. Оплату
+          между сторонами площадка не проводит.
+        </p>
+        <p className="mt-2">
+          <Link href="/privacy" className="transition-colors hover:text-foreground">
+            Политика обработки персональных данных
+          </Link>
+        </p>
       </footer>
     </div>
   );
