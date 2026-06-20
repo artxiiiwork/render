@@ -7,6 +7,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Доверяем заголовку хоста за обратным прокси хостинга (Timeweb и любой
+  // не-Vercel). Без этого Auth.js v5 отклоняет запросы (UntrustedHost) и вход
+  // не работает. Внешний адрес у нас всегда за прокси хостинга — это безопасно.
+  trustHost: true,
   // Сессию храним в защищённом cookie (а не в базе) — это просто и быстро.
   session: { strategy: "jwt" },
   // Куда отправлять неавторизованных — на нашу страницу входа.
