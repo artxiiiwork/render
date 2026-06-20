@@ -3,6 +3,16 @@
 // чтобы при разработке не плодились лишние подключения к базе.
 import { PrismaClient, Prisma } from "@prisma/client";
 
+// Обход «залипшей» переменной DATABASE_URL на хостинге: если задан DB_URL —
+// используем его как строку подключения. Нужно потому, что на Timeweb старое
+// значение DATABASE_URL перебивало новое из формы, и контейнер упорно брал
+// устаревший адрес. Под новым именем DB_URL такого конфликта нет, а Prisma
+// читает DATABASE_URL из process.env при первом запросе — поэтому подменяем
+// здесь, до создания клиента.
+if (process.env.DB_URL) {
+  process.env.DATABASE_URL = process.env.DB_URL;
+}
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 // Бесплатная база Neon «засыпает» при простое и на первый запрос может ответить
