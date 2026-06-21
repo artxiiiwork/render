@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
@@ -35,12 +36,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="panel w-full max-w-md p-8">
-        <Link
-          href="/"
-          className="font-display text-xl font-black tracking-[0.15em] text-accent"
-        >
-          RENDER
-        </Link>
+        <Logo href="/" size={28} />
         <h1 className="mt-5 font-display text-3xl font-extrabold">Вход</h1>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">

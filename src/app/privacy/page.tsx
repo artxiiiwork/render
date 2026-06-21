@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 // Политика обработки персональных данных (152-ФЗ).
 // ⚠ ШАБЛОН. Замени все поля в квадратных скобках [...] на свои реальные данные
@@ -21,12 +22,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="flex min-h-full flex-col">
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Link
-          href="/"
-          className="font-display text-2xl font-black tracking-[0.15em] text-accent"
-        >
-          RENDER
-        </Link>
+        <Logo href="/" />
         <Link
           href="/"
           className="text-sm text-muted transition-colors hover:text-foreground"

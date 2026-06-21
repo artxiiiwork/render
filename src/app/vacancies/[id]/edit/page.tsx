@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import VacancyForm from "../../VacancyForm";
@@ -27,12 +28,7 @@ export default async function EditVacancyPage({
   return (
     <div className="flex min-h-full flex-col">
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Link
-          href="/dashboard"
-          className="font-display text-2xl font-black tracking-[0.15em] text-accent"
-        >
-          RENDER
-        </Link>
+        <Logo href="/dashboard" />
         <Link
           href={`/vacancies/${id}`}
           className="text-sm text-muted transition-colors hover:text-foreground"

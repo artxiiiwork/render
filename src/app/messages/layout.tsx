@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getUnreadConversationIds } from "@/lib/unread";
@@ -60,12 +61,7 @@ export default async function MessagesLayout({
   return (
     <div className="flex h-screen flex-col">
       <header className="flex shrink-0 items-center justify-between px-6 py-5 sm:px-10">
-        <Link
-          href="/dashboard"
-          className="font-display text-2xl font-black tracking-[0.15em] text-accent"
-        >
-          RENDER
-        </Link>
+        <Logo href="/dashboard" />
         <Link
           href="/dashboard"
           className="text-sm text-muted transition-colors hover:text-foreground"

@@ -1,6 +1,7 @@
 // Личный кабинет после входа.
 // Монтажёр видит свои отклики, работодатель — свои вакансии.
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -73,12 +74,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex min-h-full flex-col">
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Link
-          href="/dashboard"
-          className="font-display text-2xl font-black tracking-[0.15em] text-accent"
-        >
-          RENDER
-        </Link>
+        <Logo href="/dashboard" />
         <div className="flex items-center gap-4 text-sm">
           <Link
             href="/editors"
