@@ -1,6 +1,6 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import Logo from "@/components/Logo";
+import PublicHeader from "@/components/PublicHeader";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { toEmbedUrl } from "@/lib/embed";
@@ -22,10 +22,10 @@ export default async function EditorProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Профиль публичный — открыт и без входа (SEO-страница). Логин нужен
+  // только на действии «Связаться».
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const me = session?.user?.id ?? null;
 
   const { id } = await params;
   const editor = await prisma.editorProfile.findUnique({
@@ -41,7 +41,7 @@ export default async function EditorProfilePage({
   }
 
   // Это резюме открыл его владелец? Тогда покажем кнопку добавления роликов.
-  const isOwner = editor.userId === session.user.id;
+  const isOwner = !!me && editor.userId === me;
 
   const pay = formatPay(editor.payMin, editor.payMax, editor.payPeriod);
   const formatLabels = editor.formats.map((f) => FORMAT_LABELS[f] ?? f);
@@ -56,15 +56,7 @@ export default async function EditorProfilePage({
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Logo href="/dashboard" />
-        <Link
-          href="/editors"
-          className="text-sm text-muted transition-colors hover:text-foreground"
-        >
-          ← К каталогу
-        </Link>
-      </header>
+      <PublicHeader authed={!!me} />
 
       {/* Обложка-шапка во всю ширину экрана */}
       <div className="relative w-full">
@@ -120,7 +112,11 @@ export default async function EditorProfilePage({
                   Редактировать резюме
                 </Link>
               ) : (
-                <ContactButton userId={editor.userId} name={editor.user.name} />
+                <ContactButton
+                  userId={editor.userId}
+                  name={editor.user.name}
+                  authed={!!me}
+                />
               )}
             </div>
 

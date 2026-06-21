@@ -9,9 +9,11 @@ import { messageUser } from "@/app/messages/actions";
 export default function ContactButton({
   userId,
   name,
+  authed,
 }: {
   userId: string;
   name: string;
+  authed: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -35,7 +37,14 @@ export default function ContactButton({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          // Гостю — на вход (анти-обход: контакт только после логина).
+          if (!authed) {
+            router.push("/login");
+            return;
+          }
+          setOpen(true);
+        }}
         className="btn-accent flex w-full justify-center px-6 py-3"
       >
         Связаться

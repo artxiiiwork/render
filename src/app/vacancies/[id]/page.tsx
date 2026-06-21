@@ -1,6 +1,6 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import Logo from "@/components/Logo";
+import PublicHeader from "@/components/PublicHeader";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ApplyForm from "./ApplyForm";
@@ -21,10 +21,11 @@ export default async function VacancyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Страница вакансии публичная — открыта и без входа. Логин нужен только
+  // на действии «Откликнуться».
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const me = session?.user?.id ?? null;
+  const authed = !!me;
 
   const { id } = await params;
   const vacancy = await prisma.vacancy.findUnique({
@@ -53,11 +54,12 @@ export default async function VacancyPage({
     notFound();
   }
 
-  const isOwner = vacancy.employerId === session.user.id;
-  const isEditor = session.user.role === "EDITOR";
-  const myApp = isEditor
-    ? vacancy.applications.find((a) => a.editorId === session.user.id)
-    : undefined;
+  const isOwner = !!me && vacancy.employerId === me;
+  const isEditor = session?.user?.role === "EDITOR";
+  const myApp =
+    isEditor && me
+      ? vacancy.applications.find((a) => a.editorId === me)
+      : undefined;
 
   const pay = formatPay(vacancy.payMin, vacancy.payMax, vacancy.payPeriod);
   const employerName =
@@ -91,15 +93,7 @@ export default async function VacancyPage({
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Logo href="/dashboard" />
-        <Link
-          href="/vacancies"
-          className="text-sm text-muted transition-colors hover:text-foreground"
-        >
-          ← К каталогу
-        </Link>
-      </header>
+      <PublicHeader authed={authed} />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
         <div className="flex flex-wrap items-center gap-3">
@@ -162,6 +156,22 @@ export default async function VacancyPage({
             {vacancy.description}
           </p>
         </div>
+
+        {/* Гость: приглашение войти, чтобы откликнуться. */}
+        {!authed && vacancy.status === "OPEN" && (
+          <div className="panel mt-6 p-6">
+            <span className="eyebrow">Отклик</span>
+            <p className="mt-3 text-sm text-muted">
+              Войдите как монтажёр, чтобы откликнуться на вакансию.
+            </p>
+            <Link
+              href="/login"
+              className="btn-accent mt-4 inline-flex px-5 py-2 text-sm"
+            >
+              Войти
+            </Link>
+          </div>
+        )}
 
         {/* Отклик — для монтажёра */}
         {isEditor && !isOwner && (

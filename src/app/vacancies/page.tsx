@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import Logo from "@/components/Logo";
 import {
   Prisma,
   ContentFormat,
@@ -9,6 +7,7 @@ import {
 } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
 import {
   FORMAT_OPTIONS,
@@ -38,10 +37,9 @@ export default async function VacanciesCatalogPage({
     page?: string;
   }>;
 }) {
+  // Каталог вакансий публичный — виден и без входа.
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const authed = !!session?.user?.id;
 
   const sp = await searchParams;
   const activeFormat =
@@ -96,15 +94,7 @@ export default async function VacanciesCatalogPage({
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Logo href="/dashboard" />
-        <Link
-          href="/dashboard"
-          className="text-sm text-muted transition-colors hover:text-foreground"
-        >
-          ← В кабинет
-        </Link>
-      </header>
+      <PublicHeader authed={authed} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
         <span className="eyebrow">Каталог</span>
