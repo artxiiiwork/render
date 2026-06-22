@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Prisma, WorkFormat, Employment } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +26,13 @@ import {
 const PAGE_SIZE = 12;
 const WORK_VALUES = WORK_FORMAT_OPTIONS.map((o) => o.value) as string[];
 const EMP_VALUES = EMPLOYMENT_OPTIONS.map((o) => o.value) as string[];
+
+export const metadata: Metadata = {
+  title: "Вакансии для видеомонтажёров",
+  description:
+    "Открытые вакансии видеомонтажёра: штат, постоянное сотрудничество, проекты. Фильтры по нише и формату работы.",
+  alternates: { canonical: "/vacancies" },
+};
 
 export default async function VacanciesCatalogPage({
   searchParams,

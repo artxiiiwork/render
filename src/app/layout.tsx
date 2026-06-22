@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import "./globals.css";
 
 // Заголовочный шрифт — Montserrat (жирное, "плакатное" начертание).
@@ -16,9 +17,27 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "RENDER — поиск видеомонтажёров и работы",
-  description:
-    "Доска вакансий и резюме для видеомонтажёров: YouTube, Shorts, Reels, TikTok. Работодатели находят монтажёров, монтажёры — работу.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "RENDER — поиск видеомонтажёров и работы",
+    template: "%s — RENDER",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "ru_RU",
+    url: SITE_URL,
+    title: "RENDER — поиск видеомонтажёров и работы",
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RENDER — поиск видеомонтажёров и работы",
+    description: SITE_DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

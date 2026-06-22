@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/site";
 import ApplyForm from "./ApplyForm";
 import ApplicationActions from "./ApplicationActions";
 import VacancyStatusButton from "./VacancyStatusButton";
@@ -15,6 +17,47 @@ import {
   formatPay,
 } from "@/lib/labels";
 import { SECTION_LABELS, GAME_LABELS } from "@/lib/taxonomy";
+
+// SEO: каждая вакансия — отдельная индексируемая страница.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const vacancy = await prisma.vacancy.findUnique({
+    where: { id },
+    select: {
+      title: true,
+      description: true,
+      employer: {
+        select: {
+          name: true,
+          employerProfile: { select: { displayName: true } },
+        },
+      },
+    },
+  });
+  if (!vacancy) return { title: "Вакансия не найдена" };
+
+  const employerName =
+    vacancy.employer.employerProfile?.displayName ?? vacancy.employer.name;
+  const title = `${vacancy.title} — вакансия монтажёра`;
+  const description = `${employerName}: ${vacancy.description.slice(0, 150)}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/vacancies/${id}` },
+    openGraph: {
+      type: "article",
+      url: `${SITE_URL}/vacancies/${id}`,
+      title,
+      description,
+    },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 export default async function VacancyPage({
   params,

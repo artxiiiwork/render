@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { toEmbedUrl } from "@/lib/embed";
+import { toEmbedUrl, toThumbUrl } from "@/lib/embed";
+import { SITE_URL } from "@/lib/site";
 import Avatar from "@/components/Avatar";
 import ContactButton from "./ContactButton";
 import ProfileBio from "./ProfileBio";
@@ -16,6 +18,63 @@ import {
   formatPay,
 } from "@/lib/labels";
 import { SECTION_LABELS, GAME_LABELS } from "@/lib/taxonomy";
+
+// SEO: каждый профиль — отдельная индексируемая страница.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const editor = await prisma.editorProfile.findUnique({
+    where: { id },
+    select: {
+      headline: true,
+      bio: true,
+      sections: true,
+      coverUrl: true,
+      avatarUrl: true,
+      user: { select: { name: true } },
+      portfolio: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        take: 1,
+        select: { url: true },
+      },
+    },
+  });
+  if (!editor) return { title: "Монтажёр не найден" };
+
+  const sectionLabels = editor.sections
+    .map((s) => SECTION_LABELS[s] ?? s)
+    .join(", ");
+  const title = `${editor.user.name} — ${editor.headline}`;
+  const description = editor.bio
+    ? editor.bio.slice(0, 155)
+    : `${editor.headline}${sectionLabels ? ` · ${sectionLabels}` : ""}. Монтажёр на RENDER — шоурил, ставка, контакт.`;
+  const ogImage =
+    editor.coverUrl ||
+    editor.avatarUrl ||
+    (editor.portfolio[0] ? toThumbUrl(editor.portfolio[0].url) : null);
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/editors/${id}` },
+    openGraph: {
+      type: "profile",
+      url: `${SITE_URL}/editors/${id}`,
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+  };
+}
 
 export default async function EditorProfilePage({
   params,

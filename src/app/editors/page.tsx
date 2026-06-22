@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Prisma, EditorStatus } from "@prisma/client";
 import { auth } from "@/auth";
@@ -24,6 +25,13 @@ import {
 
 const PAGE_SIZE = 12;
 const STATUS_VALUES = EDITOR_STATUS_OPTIONS.map((o) => o.value) as string[];
+
+export const metadata: Metadata = {
+  title: "Каталог монтажёров",
+  description:
+    "Каталог видеомонтажёров с шоурилами: игры (SAMP, CS2), мобильный формат, YouTube, моушн, 3D. Фильтры по нише, ставке и доступности.",
+  alternates: { canonical: "/editors" },
+};
 
 export default async function EditorsCatalogPage({
   searchParams,
