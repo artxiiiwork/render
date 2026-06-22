@@ -153,6 +153,7 @@ export default async function EditorProfilePage({
                 url: p.url,
                 title: p.title,
                 embed: toEmbedUrl(p.url),
+                section: p.section,
               }))}
             />
           </section>

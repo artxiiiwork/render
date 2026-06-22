@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AddPortfolioCard from "./AddPortfolioCard";
+import { SECTION_OPTIONS } from "@/lib/taxonomy";
 import {
   updatePortfolioLink,
   deletePortfolioLink,
@@ -14,7 +15,10 @@ type Item = {
   url: string;
   title: string | null;
   embed: string | null;
+  section: string | null;
 };
+
+const NO_SECTION = "__none__";
 
 export default function PortfolioGallery({
   items,
@@ -42,8 +46,35 @@ export default function PortfolioGallery({
   const [editId, setEditId] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [editSection, setEditSection] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Табы по разделам: показываем только непустые + «Прочее» для роликов без
+  // раздела. Заказчик сразу видит нужный срез (ищет SAMP — видит SAMP-работы).
+  const tabs = [
+    ...SECTION_OPTIONS.filter((o) => list.some((it) => it.section === o.value)).map(
+      (o) => ({ value: o.value, label: o.label })
+    ),
+    ...(list.some((it) => !it.section)
+      ? [{ value: NO_SECTION, label: "Прочее" }]
+      : []),
+  ];
+  const showTabs = tabs.length > 1;
+  const [activeTab, setActiveTab] = useState("");
+  const effectiveTab = showTabs
+    ? tabs.some((t) => t.value === activeTab)
+      ? activeTab
+      : tabs[0].value
+    : "";
+  const visible = showTabs
+    ? list.filter((it) =>
+        effectiveTab === NO_SECTION ? !it.section : it.section === effectiveTab
+      )
+    : list;
+  // Новый ролик по умолчанию — в активный раздел (если это не «Прочее»).
+  const addDefault =
+    effectiveTab && effectiveTab !== NO_SECTION ? effectiveTab : "";
 
   function handleDragEnter(targetId: string) {
     if (!dragId || dragId === targetId) return;
@@ -75,6 +106,7 @@ export default function PortfolioGallery({
     setEditId(it.id);
     setUrl(it.url);
     setTitle(it.title ?? "");
+    setEditSection(it.section ?? "");
     setError("");
   }
 
@@ -82,7 +114,12 @@ export default function PortfolioGallery({
     if (!editId) return;
     setError("");
     setBusy(true);
-    const res = await updatePortfolioLink({ id: editId, url, title });
+    const res = await updatePortfolioLink({
+      id: editId,
+      url,
+      title,
+      section: editSection || null,
+    });
     setBusy(false);
     if (res?.error) {
       setError(res.error);
@@ -115,15 +152,35 @@ export default function PortfolioGallery({
 
   return (
     <>
+      {/* Табы по разделам */}
+      {showTabs && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {tabs.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setActiveTab(t.value)}
+              className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                effectiveTab === t.value
+                  ? "border-accent bg-accent/15 text-foreground"
+                  : "border-border text-muted hover:border-accent/50"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isOwner && list.length > 1 && (
         <p className="mt-3 text-xs text-muted/70">
           Перетаскивайте ролики мышью, чтобы поменять порядок. Наведите на ролик
-          и нажмите карандаш, чтобы изменить.
+          и нажмите карандаш, чтобы изменить раздел или ссылку.
         </p>
       )}
 
       <div className="mt-4 grid gap-5 sm:grid-cols-2">
-        {list.map((it) => (
+        {visible.map((it) => (
           <div
             key={it.id}
             draggable={isOwner}
@@ -189,7 +246,7 @@ export default function PortfolioGallery({
         ))}
 
         {/* Владельцу — карточка добавления нового ролика */}
-        {isOwner && <AddPortfolioCard />}
+        {isOwner && <AddPortfolioCard defaultSection={addDefault} />}
       </div>
 
       {/* Окно редактирования ролика */}
@@ -216,6 +273,21 @@ export default function PortfolioGallery({
                   placeholder="https://youtube.com/..."
                   className="field"
                 />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm text-muted">Раздел</label>
+                <select
+                  value={editSection}
+                  onChange={(e) => setEditSection(e.target.value)}
+                  className="field"
+                >
+                  <option value="">Без раздела</option>
+                  {SECTION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm text-muted">

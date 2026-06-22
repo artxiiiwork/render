@@ -3,10 +3,20 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { SECTION_VALUES } from "@/lib/taxonomy";
+
+// Раздел ролика: допустимое значение или null.
+function cleanSection(section: string | null): string | null {
+  return section && SECTION_VALUES.includes(section) ? section : null;
+}
 
 // Добавление ссылки на ролик в портфолио — прямо со страницы своего резюме.
 // Монтажёр может дописывать только в СВОЙ профиль (берём его из сессии).
-export async function addPortfolioLink(input: { url: string; title: string }) {
+export async function addPortfolioLink(input: {
+  url: string;
+  title: string;
+  section: string | null;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     return { error: "Вы не авторизованы" };
@@ -37,6 +47,7 @@ export async function addPortfolioLink(input: { url: string; title: string }) {
     data: {
       url,
       title: input.title.trim() || null,
+      section: cleanSection(input.section),
       position: count,
       editorProfileId: profile.id,
     },
@@ -76,6 +87,7 @@ export async function updatePortfolioLink(input: {
   id: string;
   url: string;
   title: string;
+  section: string | null;
 }) {
   const profileId = await ownProfileId();
   if (!profileId) return { error: "Нет доступа" };
@@ -94,7 +106,11 @@ export async function updatePortfolioLink(input: {
 
   await prisma.portfolioLink.update({
     where: { id: input.id },
-    data: { url, title: input.title.trim() || null },
+    data: {
+      url,
+      title: input.title.trim() || null,
+      section: cleanSection(input.section),
+    },
   });
 
   revalidatePath(`/editors/${profileId}`);

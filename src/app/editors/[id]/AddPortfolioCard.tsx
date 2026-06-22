@@ -3,14 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addPortfolioLink } from "./actions";
+import { SECTION_OPTIONS } from "@/lib/taxonomy";
 
 // Пустая карточка с плюсом рядом с роликами — видна только владельцу резюме.
-// По клику открывается окно: ссылка на ролик + описание.
-export default function AddPortfolioCard() {
+// По клику открывается окно: ссылка на ролик + раздел + описание.
+export default function AddPortfolioCard({
+  defaultSection = "",
+}: {
+  defaultSection?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [section, setSection] = useState(defaultSection);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +29,7 @@ export default function AddPortfolioCard() {
   async function submit() {
     setError("");
     setLoading(true);
-    const res = await addPortfolioLink({ url, title });
+    const res = await addPortfolioLink({ url, title, section: section || null });
     setLoading(false);
     if (res?.error) {
       setError(res.error);
@@ -31,6 +37,7 @@ export default function AddPortfolioCard() {
     }
     setUrl("");
     setTitle("");
+    setSection(defaultSection);
     setOpen(false);
     router.refresh();
   }
@@ -70,6 +77,21 @@ export default function AddPortfolioCard() {
                   className="field"
                   autoFocus
                 />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm text-muted">Раздел</label>
+                <select
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="field"
+                >
+                  <option value="">Без раздела</option>
+                  {SECTION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm text-muted">
