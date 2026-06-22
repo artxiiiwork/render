@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { saveEditorProfile } from "./actions";
 import ImageUpload from "@/components/ImageUpload";
 import {
-  FORMAT_OPTIONS,
   WORK_FORMAT_OPTIONS,
   PAY_PERIOD_OPTIONS,
   EDITOR_STATUS_OPTIONS,
 } from "@/lib/labels";
+import { SECTION_OPTIONS, GAME_OPTIONS, GAMES_SECTION } from "@/lib/taxonomy";
 
 type Props = {
   initial: {
@@ -19,7 +19,8 @@ type Props = {
     coverUrl: string;
     skills: string[];
     software: string[];
-    formats: string[];
+    sections: string[];
+    games: string[];
     languages: string[];
     experienceYears: number | null;
     workFormats: string[];
@@ -46,7 +47,8 @@ export default function EditEditorForm({ initial }: Props) {
   const [coverUrl, setCoverUrl] = useState(initial.coverUrl);
   const [skills, setSkills] = useState(initial.skills.join(", "));
   const [software, setSoftware] = useState(initial.software.join(", "));
-  const [formats, setFormats] = useState<string[]>(initial.formats);
+  const [sections, setSections] = useState<string[]>(initial.sections);
+  const [games, setGames] = useState<string[]>(initial.games);
   const [languages, setLanguages] = useState(initial.languages.join(", "));
   const [experience, setExperience] = useState(
     initial.experienceYears != null ? String(initial.experienceYears) : ""
@@ -92,7 +94,9 @@ export default function EditEditorForm({ initial }: Props) {
       coverUrl,
       skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
       software: software.split(",").map((s) => s.trim()).filter(Boolean),
-      formats,
+      sections,
+      // игры сохраняем только если выбран раздел «Игры»
+      games: sections.includes(GAMES_SECTION) ? games : [],
       languages: languages.split(",").map((s) => s.trim()).filter(Boolean),
       experienceYears: experience.trim() ? Number(experience) : null,
       workFormats,
@@ -147,20 +151,39 @@ export default function EditEditorForm({ initial }: Props) {
       </div>
 
       <div>
-        <Label>Специализация — форматы (можно несколько)</Label>
+        <Label>Разделы / ниши (можно несколько)</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {FORMAT_OPTIONS.map((opt) => (
+          {SECTION_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => toggle(formats, setFormats, opt.value)}
-              className={boxClass(formats.includes(opt.value))}
+              onClick={() => toggle(sections, setSections, opt.value)}
+              className={boxClass(sections.includes(opt.value))}
             >
               {opt.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Подуровень «игра» — только если выбран раздел «Игры». */}
+      {sections.includes(GAMES_SECTION) && (
+        <div>
+          <Label>Игры (для раздела «Игры»)</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GAME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggle(games, setGames, opt.value)}
+                className={boxClass(games.includes(opt.value))}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <Label>

@@ -10,12 +10,12 @@ import ProfileBio from "./ProfileBio";
 import ResumeDetails from "./ResumeDetails";
 import PortfolioGallery from "./PortfolioGallery";
 import {
-  FORMAT_LABELS,
   WORK_FORMAT_LABELS,
   EDITOR_STATUS_LABELS,
   EDITOR_STATUS_STYLES,
   formatPay,
 } from "@/lib/labels";
+import { SECTION_LABELS, GAME_LABELS } from "@/lib/taxonomy";
 
 export default async function EditorProfilePage({
   params,
@@ -44,7 +44,8 @@ export default async function EditorProfilePage({
   const isOwner = !!me && editor.userId === me;
 
   const pay = formatPay(editor.payMin, editor.payMax, editor.payPeriod);
-  const formatLabels = editor.formats.map((f) => FORMAT_LABELS[f] ?? f);
+  const sectionLabels = editor.sections.map((s) => SECTION_LABELS[s] ?? s);
+  const gameLabels = editor.games.map((g) => GAME_LABELS[g] ?? g);
   const workLabels = editor.workFormats.map((w) => WORK_FORMAT_LABELS[w] ?? w);
   const where = editor.city
     ? editor.remote
@@ -129,7 +130,8 @@ export default async function EditorProfilePage({
               <ResumeDetails
                 name={editor.user.name}
                 headline={editor.headline}
-                formats={formatLabels}
+                sections={sectionLabels}
+                games={gameLabels}
                 software={editor.software}
                 skills={editor.skills}
                 workFormats={workLabels}

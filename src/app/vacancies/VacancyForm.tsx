@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createVacancy, updateVacancy, type VacancyInput } from "./actions";
 import {
-  FORMAT_OPTIONS,
   WORK_FORMAT_OPTIONS,
   EMPLOYMENT_OPTIONS,
   PAY_PERIOD_OPTIONS,
 } from "@/lib/labels";
+import { SECTION_OPTIONS, GAME_OPTIONS, GAMES_SECTION } from "@/lib/taxonomy";
 
 type Props = {
   vacancyId?: string;
@@ -17,7 +17,8 @@ type Props = {
     description: string;
     workFormat: string;
     employment: string;
-    formats: string[];
+    sections: string[];
+    games: string[];
     software: string[];
     skills: string[];
     payMin: number | null;
@@ -38,7 +39,8 @@ export default function VacancyForm({ vacancyId, initial }: Props) {
   const [description, setDescription] = useState(initial.description);
   const [workFormat, setWorkFormat] = useState(initial.workFormat);
   const [employment, setEmployment] = useState(initial.employment);
-  const [formats, setFormats] = useState<string[]>(initial.formats);
+  const [sections, setSections] = useState<string[]>(initial.sections);
+  const [games, setGames] = useState<string[]>(initial.games);
   const [software, setSoftware] = useState(initial.software.join(", "));
   const [skills, setSkills] = useState(initial.skills.join(", "));
   const [payMin, setPayMin] = useState(
@@ -53,9 +55,13 @@ export default function VacancyForm({ vacancyId, initial }: Props) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function toggleFormat(value: string) {
-    setFormats((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+  function toggle(
+    list: string[],
+    setList: (v: string[]) => void,
+    value: string
+  ) {
+    setList(
+      list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
     );
   }
 
@@ -69,7 +75,8 @@ export default function VacancyForm({ vacancyId, initial }: Props) {
       description,
       workFormat,
       employment,
-      formats,
+      sections,
+      games: sections.includes(GAMES_SECTION) ? games : [],
       software: software.split(",").map((s) => s.trim()).filter(Boolean),
       skills: skills.split(",").map((s) => s.trim()).filter(Boolean),
       payMin: payMin.trim() ? Number(payMin) : null,
@@ -157,20 +164,38 @@ export default function VacancyForm({ vacancyId, initial }: Props) {
       </div>
 
       <div>
-        <Label>Платформа / форматы контента (можно несколько)</Label>
+        <Label>Разделы / ниши (можно несколько)</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {FORMAT_OPTIONS.map((opt) => (
+          {SECTION_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => toggleFormat(opt.value)}
-              className={boxClass(formats.includes(opt.value))}
+              onClick={() => toggle(sections, setSections, opt.value)}
+              className={boxClass(sections.includes(opt.value))}
             >
               {opt.label}
             </button>
           ))}
         </div>
       </div>
+
+      {sections.includes(GAMES_SECTION) && (
+        <div>
+          <Label>Игры (для раздела «Игры»)</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GAME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggle(games, setGames, opt.value)}
+                className={boxClass(games.includes(opt.value))}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <Label>

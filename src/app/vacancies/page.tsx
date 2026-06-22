@@ -1,17 +1,10 @@
 import Link from "next/link";
-import {
-  Prisma,
-  ContentFormat,
-  WorkFormat,
-  Employment,
-} from "@prisma/client";
+import { Prisma, WorkFormat, Employment } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
 import {
-  FORMAT_OPTIONS,
-  FORMAT_LABELS,
   WORK_FORMAT_OPTIONS,
   WORK_FORMAT_LABELS,
   EMPLOYMENT_OPTIONS,
@@ -19,9 +12,16 @@ import {
   EMPLOYER_TYPE_LABELS,
   formatPay,
 } from "@/lib/labels";
+import {
+  SECTION_OPTIONS,
+  SECTION_LABELS,
+  SECTION_VALUES,
+  GAME_OPTIONS,
+  GAME_VALUES,
+  GAMES_SECTION,
+} from "@/lib/taxonomy";
 
 const PAGE_SIZE = 12;
-const FORMAT_VALUES = FORMAT_OPTIONS.map((o) => o.value) as string[];
 const WORK_VALUES = WORK_FORMAT_OPTIONS.map((o) => o.value) as string[];
 const EMP_VALUES = EMPLOYMENT_OPTIONS.map((o) => o.value) as string[];
 
@@ -29,7 +29,8 @@ export default async function VacanciesCatalogPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    format?: string;
+    section?: string;
+    game?: string;
     work?: string;
     employment?: string;
     q?: string;
@@ -42,8 +43,12 @@ export default async function VacanciesCatalogPage({
   const authed = !!session?.user?.id;
 
   const sp = await searchParams;
-  const activeFormat =
-    sp.format && FORMAT_VALUES.includes(sp.format) ? sp.format : undefined;
+  const activeSection =
+    sp.section && SECTION_VALUES.includes(sp.section) ? sp.section : undefined;
+  const activeGame =
+    activeSection === GAMES_SECTION && sp.game && GAME_VALUES.includes(sp.game)
+      ? sp.game
+      : undefined;
   const activeWork =
     sp.work && WORK_VALUES.includes(sp.work) ? sp.work : undefined;
   const activeEmployment =
@@ -55,7 +60,8 @@ export default async function VacanciesCatalogPage({
   const page = Math.max(1, Number(sp.page) || 1);
 
   const where: Prisma.VacancyWhereInput = { status: "OPEN" };
-  if (activeFormat) where.formats = { has: activeFormat as ContentFormat };
+  if (activeSection) where.sections = { has: activeSection };
+  if (activeGame) where.games = { has: activeGame };
   if (activeWork) where.workFormat = activeWork as WorkFormat;
   if (activeEmployment) where.employment = activeEmployment as Employment;
   if (onlyRemote) where.remote = true;
@@ -85,7 +91,8 @@ export default async function VacanciesCatalogPage({
   });
 
   const extraParams = {
-    format: activeFormat,
+    section: activeSection,
+    game: activeGame,
     work: activeWork,
     employment: activeEmployment,
     q,
@@ -107,14 +114,14 @@ export default async function VacanciesCatalogPage({
 
         <form method="get" action="/vacancies" className="panel mt-6 space-y-4 p-5">
           <div className="flex flex-wrap gap-2">
-            {[{ value: "", label: "Все форматы" }, ...FORMAT_OPTIONS].map(
+            {[{ value: "", label: "Все разделы" }, ...SECTION_OPTIONS].map(
               (opt) => (
                 <label key={opt.value || "all"} className="cursor-pointer">
                   <input
                     type="radio"
-                    name="format"
+                    name="section"
                     value={opt.value}
-                    defaultChecked={(activeFormat ?? "") === opt.value}
+                    defaultChecked={(activeSection ?? "") === opt.value}
                     className="peer sr-only"
                   />
                   <span className="block rounded-full border border-border px-3 py-1.5 text-sm text-muted transition hover:border-accent/50 peer-checked:border-accent peer-checked:bg-accent/15 peer-checked:text-foreground">
@@ -124,6 +131,25 @@ export default async function VacanciesCatalogPage({
               )
             )}
           </div>
+
+          {activeSection === GAMES_SECTION && (
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              {[{ value: "", label: "Все игры" }, ...GAME_OPTIONS].map((opt) => (
+                <label key={opt.value || "allgames"} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="game"
+                    value={opt.value}
+                    defaultChecked={(activeGame ?? "") === opt.value}
+                    className="peer sr-only"
+                  />
+                  <span className="block rounded-full border border-border px-3 py-1.5 text-sm text-muted transition hover:border-accent/50 peer-checked:border-accent peer-checked:bg-accent/15 peer-checked:text-foreground">
+                    {opt.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <input
@@ -195,7 +221,7 @@ export default async function VacanciesCatalogPage({
                 <Link
                   key={v.id}
                   href={`/vacancies/${v.id}`}
-                  className="panel flex flex-col p-6"
+                  className="panel panel-link flex flex-col p-6"
                 >
                   <h2 className="font-display text-lg font-bold">{v.title}</h2>
                   <p className="mt-1 text-sm text-muted">
@@ -210,12 +236,12 @@ export default async function VacanciesCatalogPage({
                     <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-foreground/80">
                       {EMPLOYMENT_LABELS[v.employment]}
                     </span>
-                    {v.formats.map((f) => (
+                    {v.sections.map((s) => (
                       <span
-                        key={f}
-                        className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent"
+                        key={s}
+                        className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent-light"
                       >
-                        {FORMAT_LABELS[f] ?? f}
+                        {SECTION_LABELS[s] ?? s}
                       </span>
                     ))}
                   </div>
@@ -225,7 +251,9 @@ export default async function VacanciesCatalogPage({
                       {v.city ? v.city : v.remote ? "Удалённо" : "—"}
                       {v.city && v.remote ? " · удалённо" : ""}
                     </span>
-                    {pay && <span className="font-medium text-foreground">{pay}</span>}
+                    {pay && (
+                      <span className="num font-medium text-foreground">{pay}</span>
+                    )}
                   </div>
                 </Link>
               );

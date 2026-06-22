@@ -7,7 +7,6 @@ import ApplyForm from "./ApplyForm";
 import ApplicationActions from "./ApplicationActions";
 import VacancyStatusButton from "./VacancyStatusButton";
 import {
-  FORMAT_LABELS,
   WORK_FORMAT_LABELS,
   EMPLOYMENT_LABELS,
   EMPLOYER_TYPE_LABELS,
@@ -15,6 +14,7 @@ import {
   APPLICATION_STATUS_STYLES,
   formatPay,
 } from "@/lib/labels";
+import { SECTION_LABELS, GAME_LABELS } from "@/lib/taxonomy";
 
 export default async function VacancyPage({
   params,
@@ -70,10 +70,15 @@ export default async function VacancyPage({
     { label: "Формат работы", value: WORK_FORMAT_LABELS[vacancy.workFormat] },
     { label: "Занятость", value: EMPLOYMENT_LABELS[vacancy.employment] },
   ];
-  if (vacancy.formats.length > 0)
+  if (vacancy.sections.length > 0)
     rows.push({
-      label: "Форматы",
-      value: vacancy.formats.map((f) => FORMAT_LABELS[f] ?? f).join(", "),
+      label: "Разделы",
+      value: vacancy.sections.map((s) => SECTION_LABELS[s] ?? s).join(", "),
+    });
+  if (vacancy.games.length > 0)
+    rows.push({
+      label: "Игры",
+      value: vacancy.games.map((g) => GAME_LABELS[g] ?? g).join(", "),
     });
   if (vacancy.software.length > 0)
     rows.push({ label: "Софт", value: vacancy.software.join(", ") });

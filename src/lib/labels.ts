@@ -1,14 +1,7 @@
 // Общие "человеческие" подписи для значений из базы.
 // Держим их в одном месте, чтобы не дублировать по всему коду.
 
-// Формат контента (ContentFormat).
-export const FORMAT_OPTIONS = [
-  { value: "LONG_FORM", label: "Длинные ролики" },
-  { value: "SHORTS", label: "Shorts" },
-  { value: "REELS", label: "Reels" },
-  { value: "TIKTOK", label: "TikTok" },
-  { value: "CLIPS", label: "Клипы и нарезка" },
-] as const;
+// Разделы-ниши и игры теперь в src/lib/taxonomy.ts (заменили старые «форматы»).
 
 // Формат найма (WorkFormat).
 export const WORK_FORMAT_OPTIONS = [
@@ -51,7 +44,6 @@ function toLabels(opts: readonly { value: string; label: string }[]) {
   return Object.fromEntries(opts.map((o) => [o.value, o.label]));
 }
 
-export const FORMAT_LABELS = toLabels(FORMAT_OPTIONS);
 export const WORK_FORMAT_LABELS = toLabels(WORK_FORMAT_OPTIONS);
 export const EMPLOYMENT_LABELS = toLabels(EMPLOYMENT_OPTIONS);
 export const PAY_PERIOD_LABELS = toLabels(PAY_PERIOD_OPTIONS);

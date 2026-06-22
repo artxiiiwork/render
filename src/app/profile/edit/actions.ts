@@ -4,15 +4,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
-  ContentFormat,
   WorkFormat,
   PayPeriod,
   EditorStatus,
   EmployerType,
 } from "@prisma/client";
+import { SECTION_VALUES, GAME_VALUES, GAMES_SECTION } from "@/lib/taxonomy";
 
 // Допустимые значения справочников (берём прямо из базы — не разойдутся).
-const FORMATS = Object.values(ContentFormat) as string[];
 const WORK_FORMATS = Object.values(WorkFormat) as string[];
 const PAY_PERIODS = Object.values(PayPeriod) as string[];
 const STATUSES = Object.values(EditorStatus) as string[];
@@ -26,7 +25,8 @@ export async function saveEditorProfile(input: {
   coverUrl: string;
   skills: string[];
   software: string[];
-  formats: string[];
+  sections: string[];
+  games: string[];
   languages: string[];
   experienceYears: number | null;
   workFormats: string[];
@@ -52,7 +52,11 @@ export async function saveEditorProfile(input: {
   }
 
   // Оставляем только допустимые значения и чистим списки от пустого.
-  const formats = input.formats.filter((f) => FORMATS.includes(f)) as ContentFormat[];
+  const sections = input.sections.filter((s) => SECTION_VALUES.includes(s));
+  // игры — только если выбран раздел «Игры».
+  const games = sections.includes(GAMES_SECTION)
+    ? input.games.filter((g) => GAME_VALUES.includes(g))
+    : [];
   const workFormats = input.workFormats.filter((f) =>
     WORK_FORMATS.includes(f)
   ) as WorkFormat[];
@@ -79,7 +83,8 @@ export async function saveEditorProfile(input: {
       coverUrl: input.coverUrl.trim() || null,
       skills,
       software,
-      formats,
+      sections,
+      games,
       languages,
       experienceYears: input.experienceYears,
       workFormats,

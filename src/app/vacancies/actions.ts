@@ -4,15 +4,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
-  ContentFormat,
   WorkFormat,
   Employment,
   PayPeriod,
   VacancyStatus,
   ApplicationStatus,
 } from "@prisma/client";
+import { SECTION_VALUES, GAME_VALUES, GAMES_SECTION } from "@/lib/taxonomy";
 
-const FORMATS = Object.values(ContentFormat) as string[];
 const WORK_FORMATS = Object.values(WorkFormat) as string[];
 const EMPLOYMENTS = Object.values(Employment) as string[];
 const PAY_PERIODS = Object.values(PayPeriod) as string[];
@@ -23,7 +22,8 @@ export type VacancyInput = {
   description: string;
   workFormat: string;
   employment: string;
-  formats: string[];
+  sections: string[];
+  games: string[];
   software: string[];
   skills: string[];
   payMin: number | null;
@@ -50,7 +50,10 @@ function normalize(input: VacancyInput) {
       description,
       workFormat: input.workFormat as WorkFormat,
       employment: input.employment as Employment,
-      formats: input.formats.filter((f) => FORMATS.includes(f)) as ContentFormat[],
+      sections: input.sections.filter((s) => SECTION_VALUES.includes(s)),
+      games: input.sections.includes(GAMES_SECTION)
+        ? input.games.filter((g) => GAME_VALUES.includes(g))
+        : [],
       software: input.software.map((s) => s.trim()).filter(Boolean),
       skills: input.skills.map((s) => s.trim()).filter(Boolean),
       payMin: input.payMin,

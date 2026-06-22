@@ -25,14 +25,10 @@ enum Role {
   EMPLOYER // работодатель: блогер / студия / агентство / бренд
 }
 
-// Формат контента — и для специализации монтажёра, и для вакансии.
-enum ContentFormat {
-  LONG_FORM // длинные ролики YouTube
-  SHORTS // YouTube Shorts
-  REELS // Instagram Reels
-  TIKTOK // TikTok
-  CLIPS // клипы и нарезка
-}
+// Таксономия (разделы-ниши) и игры хранятся строковыми массивами, а
+// допустимые значения — в коде (src/lib/taxonomy.ts). Так список разделов и
+// игр можно расширять без миграции базы. Раздел верхнего уровня — например
+// GAMES / MOBILE / YOUTUBE / MOTION / CGI3D; для GAMES есть подуровень «игра».
 
 // Формат найма (как работают вместе).
 enum WorkFormat {
@@ -132,7 +128,8 @@ model EditorProfile {
   coverUrl        String? // обложка-шапка профиля (широкое фото сверху)
   skills          String[] // навыки (теги)
   software        String[] // софт: Premiere, DaVinci, After Effects, CapCut…
-  formats         ContentFormat[] // форматы, в которых работает
+  sections        String[] // разделы-ниши (GAMES / MOBILE / YOUTUBE / MOTION / CGI3D)
+  games           String[] // игры (если есть раздел GAMES): SAMP / CS2 …
   languages       String[] // языки
   experienceYears Int? // опыт в годах, необязательно
 
@@ -181,6 +178,7 @@ model PortfolioLink {
   id       String  @id @default(cuid())
   url      String
   title    String? // подпись к видео, необязательно
+  section  String? // раздел-ниша ролика (GAMES / MOBILE / …) — для портфолио по разделам
   position Int     @default(0) // порядок в галерее (меньше — выше); меняется перетаскиванием
 
   editorProfileId String
@@ -198,7 +196,8 @@ model Vacancy {
   description String // описание
   workFormat  WorkFormat // штат / постоянка / проект
   employment  Employment // полная / частичная / проектная
-  formats     ContentFormat[] // платформа и тип контента
+  sections    String[] // разделы-ниши (GAMES / MOBILE / YOUTUBE / MOTION / CGI3D)
+  games       String[] // игры (если есть раздел GAMES)
   software    String[] // требуемый софт
   skills      String[] // требуемые навыки
 

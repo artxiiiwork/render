@@ -1,28 +1,34 @@
 import Link from "next/link";
-import { Prisma, EditorStatus, ContentFormat } from "@prisma/client";
+import { Prisma, EditorStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Avatar from "@/components/Avatar";
 import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
 import {
-  FORMAT_OPTIONS,
-  FORMAT_LABELS,
   EDITOR_STATUS_OPTIONS,
   EDITOR_STATUS_LABELS,
   EDITOR_STATUS_STYLES,
   formatPay,
 } from "@/lib/labels";
+import {
+  SECTION_OPTIONS,
+  SECTION_LABELS,
+  SECTION_VALUES,
+  GAME_OPTIONS,
+  GAME_VALUES,
+  GAMES_SECTION,
+} from "@/lib/taxonomy";
 
 const PAGE_SIZE = 12;
-const FORMAT_VALUES = FORMAT_OPTIONS.map((o) => o.value) as string[];
 const STATUS_VALUES = EDITOR_STATUS_OPTIONS.map((o) => o.value) as string[];
 
 export default async function EditorsCatalogPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    format?: string;
+    section?: string;
+    game?: string;
     status?: string;
     q?: string;
     remote?: string;
@@ -34,8 +40,13 @@ export default async function EditorsCatalogPage({
   const authed = !!session?.user?.id;
 
   const sp = await searchParams;
-  const activeFormat =
-    sp.format && FORMAT_VALUES.includes(sp.format) ? sp.format : undefined;
+  const activeSection =
+    sp.section && SECTION_VALUES.includes(sp.section) ? sp.section : undefined;
+  // Игра учитывается только в разделе «Игры».
+  const activeGame =
+    activeSection === GAMES_SECTION && sp.game && GAME_VALUES.includes(sp.game)
+      ? sp.game
+      : undefined;
   const activeStatus =
     sp.status && STATUS_VALUES.includes(sp.status) ? sp.status : undefined;
   const q = sp.q?.trim() || undefined;
@@ -44,7 +55,8 @@ export default async function EditorsCatalogPage({
 
   // Собираем условия фильтра.
   const where: Prisma.EditorProfileWhereInput = {};
-  if (activeFormat) where.formats = { has: activeFormat as ContentFormat };
+  if (activeSection) where.sections = { has: activeSection };
+  if (activeGame) where.games = { has: activeGame };
   if (activeStatus) where.status = activeStatus as EditorStatus;
   if (onlyRemote) where.remote = true;
   if (q) {
@@ -67,7 +79,8 @@ export default async function EditorsCatalogPage({
 
   // Параметры для пагинации (чтобы фильтры сохранялись при листании).
   const extraParams = {
-    format: activeFormat,
+    section: activeSection,
+    game: activeGame,
     status: activeStatus,
     q,
     remote: onlyRemote ? "1" : undefined,
@@ -90,15 +103,16 @@ export default async function EditorsCatalogPage({
 
         {/* Фильтры — обычная форма, работает через адрес страницы. */}
         <form method="get" action="/editors" className="panel mt-6 space-y-4 p-5">
+          {/* Разделы (ниши) */}
           <div className="flex flex-wrap gap-2">
-            {[{ value: "", label: "Все форматы" }, ...FORMAT_OPTIONS].map(
+            {[{ value: "", label: "Все разделы" }, ...SECTION_OPTIONS].map(
               (opt) => (
                 <label key={opt.value || "all"} className="cursor-pointer">
                   <input
                     type="radio"
-                    name="format"
+                    name="section"
                     value={opt.value}
-                    defaultChecked={(activeFormat ?? "") === opt.value}
+                    defaultChecked={(activeSection ?? "") === opt.value}
                     className="peer sr-only"
                   />
                   <span className="block rounded-full border border-border px-3 py-1.5 text-sm text-muted transition hover:border-accent/50 peer-checked:border-accent peer-checked:bg-accent/15 peer-checked:text-foreground">
@@ -108,6 +122,26 @@ export default async function EditorsCatalogPage({
               )
             )}
           </div>
+
+          {/* Подфильтр «игра» — только когда выбран раздел «Игры». */}
+          {activeSection === GAMES_SECTION && (
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              {[{ value: "", label: "Все игры" }, ...GAME_OPTIONS].map((opt) => (
+                <label key={opt.value || "allgames"} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="game"
+                    value={opt.value}
+                    defaultChecked={(activeGame ?? "") === opt.value}
+                    className="peer sr-only"
+                  />
+                  <span className="block rounded-full border border-border px-3 py-1.5 text-sm text-muted transition hover:border-accent/50 peer-checked:border-accent peer-checked:bg-accent/15 peer-checked:text-foreground">
+                    {opt.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <input
@@ -143,7 +177,7 @@ export default async function EditorsCatalogPage({
             </button>
             <Link
               href="/editors"
-              className="rounded-full border border-border px-5 py-2 text-sm text-muted transition hover:border-accent/60 hover:text-foreground"
+              className="rounded-lg border border-border px-5 py-2 text-sm text-muted transition hover:border-accent/60 hover:text-foreground"
             >
               Сбросить
             </Link>
@@ -163,7 +197,7 @@ export default async function EditorsCatalogPage({
                 <Link
                   key={e.id}
                   href={`/editors/${e.id}`}
-                  className="panel flex flex-col p-6"
+                  className="panel panel-link flex flex-col p-6"
                 >
                   <div className="flex items-start gap-4">
                     <Avatar src={e.avatarUrl} name={e.user.name} size={52} />
@@ -184,14 +218,14 @@ export default async function EditorsCatalogPage({
                     </span>
                   </div>
 
-                  {e.formats.length > 0 && (
+                  {e.sections.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5">
-                      {e.formats.map((f) => (
+                      {e.sections.map((s) => (
                         <span
-                          key={f}
-                          className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent"
+                          key={s}
+                          className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent-light"
                         >
-                          {FORMAT_LABELS[f] ?? f}
+                          {SECTION_LABELS[s] ?? s}
                         </span>
                       ))}
                     </div>
@@ -202,7 +236,11 @@ export default async function EditorsCatalogPage({
                       {e.city ? e.city : e.remote ? "Удалённо" : "—"}
                       {e.city && e.remote ? " · удалённо" : ""}
                     </span>
-                    {pay && <span className="font-medium text-foreground">{pay}</span>}
+                    {pay && (
+                      <span className="num font-medium text-foreground">
+                        {pay}
+                      </span>
+                    )}
                   </div>
                 </Link>
               );

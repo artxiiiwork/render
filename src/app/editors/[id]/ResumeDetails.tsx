@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 type Props = {
   name: string;
   headline: string;
-  formats: string[];
+  sections: string[];
+  games: string[];
   software: string[];
   skills: string[];
   workFormats: string[];
@@ -30,7 +31,8 @@ export default function ResumeDetails(props: Props) {
   const {
     name,
     headline,
-    formats,
+    sections,
+    games,
     software,
     skills,
     workFormats,
@@ -79,9 +81,10 @@ export default function ResumeDetails(props: Props) {
 
             {/* Теги-группы */}
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              {formats.length > 0 && (
-                <TagGroup label="Форматы" items={formats} />
+              {sections.length > 0 && (
+                <TagGroup label="Разделы" items={sections} />
               )}
+              {games.length > 0 && <TagGroup label="Игры" items={games} />}
               {software.length > 0 && (
                 <TagGroup label="Софт" items={software} />
               )}
