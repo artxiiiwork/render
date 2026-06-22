@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
+import MascotSlot from "@/components/MascotSlot";
 import {
   WORK_FORMAT_OPTIONS,
   WORK_FORMAT_LABELS,
@@ -207,9 +208,9 @@ export default async function VacanciesCatalogPage({
         </form>
 
         {vacancies.length === 0 ? (
-          <p className="panel mt-6 p-8 text-center text-muted">
-            Подходящих вакансий не нашли.
-          </p>
+          <div className="panel mt-6 flex flex-col items-center gap-4 p-10">
+            <MascotSlot caption="Подходящих вакансий не нашли." />
+          </div>
         ) : (
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
             {vacancies.map((v) => {

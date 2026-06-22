@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Avatar from "@/components/Avatar";
+import MascotSlot from "@/components/MascotSlot";
 
 type Item = {
   id: string;
@@ -36,9 +37,13 @@ export default function ConversationList({ items }: { items: Item[] }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="p-4 text-sm text-muted">
-            {items.length === 0 ? "Переписок пока нет." : "Ничего не найдено."}
-          </p>
+          items.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 p-6">
+              <MascotSlot size={84} caption="Переписок пока нет." />
+            </div>
+          ) : (
+            <p className="p-4 text-sm text-muted">Ничего не найдено.</p>
+          )
         ) : (
           filtered.map((i) => {
             const active = pathname === `/messages/${i.id}`;

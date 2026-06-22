@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Avatar from "@/components/Avatar";
 import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
+import MascotSlot from "@/components/MascotSlot";
 import { toThumbUrl } from "@/lib/embed";
 import {
   EDITOR_STATUS_OPTIONS,
@@ -195,9 +196,9 @@ export default async function EditorsCatalogPage({
 
         {/* Карточки монтажёров. */}
         {editors.length === 0 ? (
-          <p className="panel mt-6 p-8 text-center text-muted">
-            Никого не нашли. Попробуйте смягчить фильтры.
-          </p>
+          <div className="panel mt-6 flex flex-col items-center gap-4 p-10">
+            <MascotSlot caption="Никого не нашли. Попробуйте смягчить фильтры." />
+          </div>
         ) : (
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {editors.map((e) => {

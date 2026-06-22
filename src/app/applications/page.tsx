@@ -4,6 +4,7 @@ import Logo from "@/components/Logo";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ApplicationsBoard from "./ApplicationsBoard";
+import MascotSlot from "@/components/MascotSlot";
 
 export default async function ApplicationsPage() {
   const session = await auth();
@@ -84,9 +85,15 @@ export default async function ApplicationsPage() {
             : "Откликов пока нет."}
         </p>
 
-        <div className="mt-6">
-          <ApplicationsBoard applications={applications} />
-        </div>
+        {applications.length === 0 ? (
+          <div className="panel mt-6 flex flex-col items-center gap-4 p-10">
+            <MascotSlot caption="Откликов пока нет. Они появятся, когда монтажёры откликнутся на ваши вакансии." />
+          </div>
+        ) : (
+          <div className="mt-6">
+            <ApplicationsBoard applications={applications} />
+          </div>
+        )}
       </main>
     </div>
   );
