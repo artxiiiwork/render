@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import PublicHeader from "@/components/PublicHeader";
-
-// Ниши верхнего уровня (под будущую таксономию). Пока ведут в общий каталог.
-const NICHES = [
-  "Игры",
-  "Мобильный формат",
-  "YouTube",
-  "Моушн",
-  "3D / CGI",
-];
+import Avatar from "@/components/Avatar";
+import { toThumbUrl } from "@/lib/embed";
+import { formatPay } from "@/lib/labels";
+import { SECTION_OPTIONS, SECTION_LABELS } from "@/lib/taxonomy";
 
 // Небольшая «статистика» под героем.
 function Stat({ value, label }: { value: string; label: string }) {
@@ -25,14 +21,41 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
+const PLACEHOLDER_BGS = [
+  "linear-gradient(150deg, #6d28d9, #241047)",
+  "linear-gradient(150deg, #a855f7, #3a1191)",
+  "linear-gradient(150deg, #7c3aed, #1c0e3e)",
+];
+
 // Лендинг RENDER. Тёмная «студийная» сцена: свет даёт сам шоурил.
 //  • слева — заголовок + заход в каталог без регистрации;
-//  • справа — стена шоурилов (пока стилизованные заглушки — наполнятся
-//    реальными превью, когда появятся монтажёры);
+//  • справа — стена шоурилов: реальные монтажёры с роликами (если их ещё нет —
+//    аккуратные заглушки);
 //  • ниже — ниши и два пути регистрации.
 export default async function Home() {
   const session = await auth();
   const authed = !!session?.user?.id;
+
+  // Несколько монтажёров с роликами — для стены шоурилов.
+  const featured = await prisma.editorProfile.findMany({
+    where: { portfolio: { some: {} } },
+    include: {
+      user: { select: { name: true } },
+      portfolio: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        take: 1,
+        select: { url: true },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 4,
+  });
+
+  const big = featured[0] ?? null;
+  const bigCover = big?.portfolio[0] ? toThumbUrl(big.portfolio[0].url) : null;
+  const bigSection = big?.sections[0] ? SECTION_LABELS[big.sections[0]] : null;
+  const bigPay = big ? formatPay(big.payMin, big.payMax, big.payPeriod) : null;
+  const smalls = featured.slice(1, 4);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -82,77 +105,102 @@ export default async function Home() {
           {/* Правая колонка — стена шоурилов */}
           <div>
             <Link
-              href="/editors"
+              href={big ? `/editors/${big.id}` : "/editors"}
               className="group relative block aspect-[16/10] overflow-hidden rounded-2xl"
               style={{
-                backgroundImage: "linear-gradient(150deg, #8b5cf6, #3a1191 70%)",
+                backgroundImage: bigCover
+                  ? undefined
+                  : "linear-gradient(150deg, #8b5cf6, #3a1191 70%)",
                 boxShadow: "0 24px 60px -20px rgba(124,58,237,0.5)",
               }}
             >
+              {bigCover && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={bigCover}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
               <span className="absolute inset-0 flex items-center justify-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-xl text-white transition group-hover:bg-white/30">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/35 text-xl text-white transition group-hover:bg-black/55">
                   ▶
                 </span>
               </span>
-              <span className="absolute left-3 top-3 rounded-md bg-black/40 px-2 py-1 text-[10px] text-white">
-                Игры · SAMP
-              </span>
-              <span className="num absolute right-3 top-3 rounded-md bg-black/40 px-1.5 py-1 text-[10px] text-white">
-                1:08
-              </span>
-              <span
-                className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-3 pb-3 pt-6"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(0deg, rgba(8,5,20,0.85), transparent)",
-                }}
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-light text-xs font-bold text-[#1E1248]">
-                  А
+              {bigSection && (
+                <span className="absolute left-3 top-3 rounded-md bg-black/45 px-2 py-1 text-[10px] text-white">
+                  {bigSection}
                 </span>
-                <span className="flex-1">
-                  <span className="block text-xs font-semibold text-white">
-                    Алексей
+              )}
+              {big && (
+                <span
+                  className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-3 pb-3 pt-6"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(0deg, rgba(8,5,20,0.85), transparent)",
+                  }}
+                >
+                  <Avatar src={big.avatarUrl} name={big.user.name} size={32} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-white">
+                      {big.user.name}
+                    </span>
+                    <span className="block truncate text-[10px] text-white/60">
+                      {big.headline}
+                    </span>
                   </span>
-                  <span className="block text-[10px] text-white/60">
-                    Монтажёр игровых нарезок
-                  </span>
+                  {bigPay && (
+                    <span className="num shrink-0 text-xs text-white">
+                      {bigPay}
+                    </span>
+                  )}
                 </span>
-                <span className="num text-xs text-white">50k ₽</span>
-              </span>
+              )}
             </Link>
 
             <div className="mt-2 grid grid-cols-3 gap-2">
-              {[
-                "linear-gradient(150deg, #6d28d9, #241047)",
-                "linear-gradient(150deg, #a855f7, #3a1191)",
-                "linear-gradient(150deg, #7c3aed, #1c0e3e)",
-              ].map((bg, i) => (
-                <Link
-                  key={i}
-                  href="/editors"
-                  className="group relative block aspect-video overflow-hidden rounded-xl"
-                  style={{ backgroundImage: bg }}
-                >
-                  <span className="absolute inset-0 flex items-center justify-center text-white/85 transition group-hover:text-white">
-                    ▶
-                  </span>
-                </Link>
-              ))}
+              {[0, 1, 2].map((i) => {
+                const ed = smalls[i];
+                const cover = ed?.portfolio[0]
+                  ? toThumbUrl(ed.portfolio[0].url)
+                  : null;
+                return (
+                  <Link
+                    key={i}
+                    href={ed ? `/editors/${ed.id}` : "/editors"}
+                    className="group relative block aspect-video overflow-hidden rounded-xl"
+                    style={{
+                      backgroundImage: cover ? undefined : PLACEHOLDER_BGS[i],
+                    }}
+                  >
+                    {cover && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cover}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    )}
+                    <span className="absolute inset-0 flex items-center justify-center text-white/85 transition group-hover:text-white">
+                      ▶
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Чипы ниш */}
+        {/* Чипы ниш — ведут в каталог с фильтром по разделу */}
         <div className="mx-auto w-full max-w-6xl px-6 pb-9">
           <div className="flex flex-wrap gap-2">
-            {NICHES.map((n) => (
+            {SECTION_OPTIONS.map((s) => (
               <Link
-                key={n}
-                href="/editors"
+                key={s.value}
+                href={`/editors?section=${s.value}`}
                 className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm text-accent-light transition hover:border-accent/60"
               >
-                {n}
+                {s.label}
               </Link>
             ))}
           </div>

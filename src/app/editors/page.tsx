@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Avatar from "@/components/Avatar";
 import PublicHeader from "@/components/PublicHeader";
 import Pagination from "@/components/Pagination";
+import { toThumbUrl } from "@/lib/embed";
 import {
   EDITOR_STATUS_OPTIONS,
   EDITOR_STATUS_LABELS,
@@ -71,7 +72,15 @@ export default async function EditorsCatalogPage({
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const editors = await prisma.editorProfile.findMany({
     where,
-    include: { user: { select: { name: true } } },
+    include: {
+      user: { select: { name: true } },
+      // Первый ролик — для обложки-превью на карточке.
+      portfolio: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        take: 1,
+        select: { url: true },
+      },
+    },
     orderBy: { updatedAt: "desc" },
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
@@ -190,57 +199,92 @@ export default async function EditorsCatalogPage({
             Никого не нашли. Попробуйте смягчить фильтры.
           </p>
         ) : (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {editors.map((e) => {
               const pay = formatPay(e.payMin, e.payMax, e.payPeriod);
+              const cover = e.portfolio[0]
+                ? toThumbUrl(e.portfolio[0].url)
+                : null;
               return (
                 <Link
                   key={e.id}
                   href={`/editors/${e.id}`}
-                  className="panel panel-link flex flex-col p-6"
+                  className="panel panel-link group flex flex-col overflow-hidden"
                 >
-                  <div className="flex items-start gap-4">
-                    <Avatar src={e.avatarUrl} name={e.user.name} size={52} />
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-display text-lg font-bold">
-                        {e.user.name}
-                      </h2>
-                      <p className="truncate text-sm text-muted">
-                        {e.headline}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        EDITOR_STATUS_STYLES[e.status]
-                      }`}
-                    >
-                      {EDITOR_STATUS_LABELS[e.status]}
-                    </span>
-                  </div>
-
-                  {e.sections.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {e.sections.map((s) => (
-                        <span
-                          key={s}
-                          className="rounded-full bg-accent-soft px-2.5 py-1 text-xs text-accent-light"
-                        >
-                          {SECTION_LABELS[s] ?? s}
+                  {/* Обложка шоурила — главное на карточке */}
+                  <div className="relative aspect-video w-full overflow-hidden bg-surface-2">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cover}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-full w-full items-center justify-center"
+                        style={{
+                          backgroundImage:
+                            "linear-gradient(150deg, #3a1191, #1c0e3e)",
+                        }}
+                      >
+                        <span className="text-2xl text-white/35">▶</span>
+                      </div>
+                    )}
+                    {cover && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
+                          ▶
                         </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="text-muted">
-                      {e.city ? e.city : e.remote ? "Удалённо" : "—"}
-                      {e.city && e.remote ? " · удалённо" : ""}
-                    </span>
-                    {pay && (
-                      <span className="num font-medium text-foreground">
-                        {pay}
                       </span>
                     )}
+                  </div>
+
+                  {/* Данные */}
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar src={e.avatarUrl} name={e.user.name} size={36} />
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate font-display text-base font-bold">
+                          {e.user.name}
+                        </h2>
+                        <p className="truncate text-xs text-muted">
+                          {e.headline}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          EDITOR_STATUS_STYLES[e.status]
+                        }`}
+                      >
+                        {EDITOR_STATUS_LABELS[e.status]}
+                      </span>
+                    </div>
+
+                    {e.sections.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {e.sections.map((s) => (
+                          <span
+                            key={s}
+                            className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] text-accent-light"
+                          >
+                            {SECTION_LABELS[s] ?? s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-between text-sm">
+                      <span className="text-muted">
+                        {e.city ? e.city : e.remote ? "Удалённо" : "—"}
+                        {e.city && e.remote ? " · удалённо" : ""}
+                      </span>
+                      {pay && (
+                        <span className="num font-medium text-foreground">
+                          {pay}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               );

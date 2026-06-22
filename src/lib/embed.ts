@@ -1,34 +1,44 @@
-// Превращаем ссылку на YouTube/Vimeo в адрес для встраивания (iframe).
-// Если ссылку не распознали — вернём null (покажем просто ссылкой).
-export function toEmbedUrl(url: string): string | null {
+// Работа со ссылками на ролики: встраивание (iframe) и обложка-превью.
+
+// Извлекаем ID ролика YouTube из ссылки (watch / youtu.be / shorts / embed).
+function youtubeId(url: string): string | null {
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, "");
-
-    // YouTube: короткая ссылка youtu.be/<id>
-    if (host === "youtu.be") {
-      const id = u.pathname.slice(1);
-      return id ? `https://www.youtube.com/embed/${id}` : null;
-    }
-
-    // YouTube: youtube.com/watch?v=<id>, /shorts/<id>, /embed/<id>
+    if (host === "youtu.be") return u.pathname.slice(1) || null;
     if (host.endsWith("youtube.com")) {
-      if (u.pathname === "/watch") {
-        const id = u.searchParams.get("v");
-        return id ? `https://www.youtube.com/embed/${id}` : null;
-      }
+      if (u.pathname === "/watch") return u.searchParams.get("v");
       const m = u.pathname.match(/^\/(?:shorts|embed)\/([\w-]+)/);
-      if (m) return `https://www.youtube.com/embed/${m[1]}`;
+      if (m) return m[1];
     }
-
-    // Vimeo: vimeo.com/<id>
-    if (host.endsWith("vimeo.com")) {
-      const m = u.pathname.match(/\/(\d+)/);
-      if (m) return `https://player.vimeo.com/video/${m[1]}`;
-    }
-
     return null;
   } catch {
     return null;
   }
+}
+
+// Превращаем ссылку на YouTube/Vimeo в адрес для встраивания (iframe).
+// Если ссылку не распознали — вернём null (покажем просто ссылкой).
+export function toEmbedUrl(url: string): string | null {
+  const yt = youtubeId(url);
+  if (yt) return `https://www.youtube.com/embed/${yt}`;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host.endsWith("vimeo.com")) {
+      const m = u.pathname.match(/\/(\d+)/);
+      if (m) return `https://player.vimeo.com/video/${m[1]}`;
+    }
+  } catch {
+    // невалидная ссылка — игнорируем
+  }
+  return null;
+}
+
+// Обложка-превью ролика для карточек каталога и лендинга. Пока только YouTube —
+// у него стабильные предсказуемые адреса превью. Для остального вернём null
+// (карточка покажет аккуратную заглушку).
+export function toThumbUrl(url: string): string | null {
+  const yt = youtubeId(url);
+  return yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
 }
