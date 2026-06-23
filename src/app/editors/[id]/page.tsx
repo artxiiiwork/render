@@ -10,7 +10,9 @@ import Avatar from "@/components/Avatar";
 import Stars from "@/components/Stars";
 import { summarizeRatings, pluralReviews } from "@/lib/reviews";
 import { profileStrength } from "@/lib/profileStrength";
+import { editorBadges } from "@/lib/badges";
 import ProfileStrength from "./ProfileStrength";
+import Badges from "@/components/Badges";
 import ContactButton from "./ContactButton";
 import ProfileBio from "./ProfileBio";
 import ResumeDetails from "./ResumeDetails";
@@ -126,20 +128,29 @@ export default async function EditorProfilePage({
   }));
   const myReviewItem = reviewItems.find((r) => r.isMine) ?? null;
 
-  // «Сила профиля» считается только для владельца (показываем ему панель-подсказку).
-  const strength = isOwner
-    ? profileStrength({
-        avatarUrl: editor.avatarUrl,
-        coverUrl: editor.coverUrl,
-        bio: editor.bio,
-        sections: editor.sections,
-        software: editor.software,
-        skills: editor.skills,
-        payMin: editor.payMin,
-        reelCount: editor.portfolio.length,
-        hasReviews: ratingSummary.count > 0,
-      })
-    : null;
+  // «Сила профиля»: считаем всегда (нужна для публичного значка «Профиль заполнен»),
+  // а панель-подсказку показываем только владельцу.
+  const strength = profileStrength({
+    avatarUrl: editor.avatarUrl,
+    coverUrl: editor.coverUrl,
+    bio: editor.bio,
+    sections: editor.sections,
+    software: editor.software,
+    skills: editor.skills,
+    payMin: editor.payMin,
+    reelCount: editor.portfolio.length,
+    hasReviews: ratingSummary.count > 0,
+  });
+
+  // Публичные значки-достижения.
+  const badges = editorBadges({
+    reelCount: editor.portfolio.length,
+    reviewCount: ratingSummary.count,
+    avgRating: ratingSummary.average,
+    experienceYears: editor.experienceYears,
+    status: editor.status,
+    strengthPercent: strength.percent,
+  });
 
   // Оставить отзыв можно только тому, с кем была переписка (не себе).
   let canReview = false;
@@ -230,6 +241,12 @@ export default async function EditorProfilePage({
               </div>
             )}
 
+            {badges.length > 0 && (
+              <div className="mt-4">
+                <Badges badges={badges} />
+              </div>
+            )}
+
             <div className="mt-5">
               {isOwner ? (
                 <Link
@@ -248,7 +265,7 @@ export default async function EditorProfilePage({
             </div>
 
             {/* Сила профиля — подсказка только владельцу */}
-            {strength && (
+            {isOwner && (
               <div className="mt-6">
                 <ProfileStrength strength={strength} />
               </div>

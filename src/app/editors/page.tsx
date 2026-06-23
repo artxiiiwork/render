@@ -11,7 +11,9 @@ import { toThumbUrl } from "@/lib/embed";
 import { formatPay } from "@/lib/labels";
 import { editorQualityScore, isTopEditor } from "@/lib/ranking";
 import { summarizeRatings, ratingBonus } from "@/lib/reviews";
+import { editorBadges } from "@/lib/badges";
 import Stars from "@/components/Stars";
+import Badges from "@/components/Badges";
 import {
   SECTION_OPTIONS,
   SECTION_LABELS,
@@ -136,7 +138,21 @@ export default async function EditorsCatalogPage({
         updatedAt: e.updatedAt,
         reelCount: e._count.portfolio,
       }) + ratingBonus(summary);
-    return { ...e, _score: score, _isTop: isTopEditor(score), _rating: summary };
+    // Значки для карточки (без «Открыт к работе» — это уже показывает зелёная точка).
+    const badges = editorBadges({
+      reelCount: e._count.portfolio,
+      reviewCount: summary.count,
+      avgRating: summary.average,
+      experienceYears: e.experienceYears,
+      status: e.status,
+    }).filter((b) => b.key !== "open");
+    return {
+      ...e,
+      _score: score,
+      _isTop: isTopEditor(score),
+      _rating: summary,
+      _badges: badges,
+    };
   });
 
   // Сортировка: по ставке (если выбрано) или по качеству профиля.
@@ -503,15 +519,22 @@ export default async function EditorsCatalogPage({
                           </div>
                         </Link>
 
-                        {e._rating.count > 0 && (
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <Stars value={e._rating.average} size={13} />
-                            <span className="num text-xs text-foreground">
-                              {e._rating.average.toFixed(1)}
-                            </span>
-                            <span className="text-xs text-muted">
-                              ({e._rating.count})
-                            </span>
+                        {(e._rating.count > 0 || e._badges.length > 0) && (
+                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {e._rating.count > 0 && (
+                              <span className="flex items-center gap-1.5">
+                                <Stars value={e._rating.average} size={13} />
+                                <span className="num text-xs text-foreground">
+                                  {e._rating.average.toFixed(1)}
+                                </span>
+                                <span className="text-xs text-muted">
+                                  ({e._rating.count})
+                                </span>
+                              </span>
+                            )}
+                            {e._badges.length > 0 && (
+                              <Badges badges={e._badges} compact limit={3} />
+                            )}
                           </div>
                         )}
 
