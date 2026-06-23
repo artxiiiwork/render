@@ -102,6 +102,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Уведомления в Telegram: chatId — куда слать (после привязки), linkCode —
+  // одноразовый код для привязки через /start <code> у бота.
+  telegramChatId   String? @unique
+  telegramLinkCode String? @unique
+
   // У пользователя есть ОДИН из профилей — по его роли.
   editorProfile   EditorProfile?
   employerProfile EmployerProfile?

@@ -134,11 +134,27 @@ RENDER — **доска вакансий и резюме** для видеомо
   + компонент `src/components/Badges.tsx` (compact — иконки для карточек каталога,
   обычный — чипы на профиле). На карточке «Открыт к работе» не дублируем (есть
   зелёная точка). Звёзды рейтинга — `src/components/Stars.tsx`.
+- Telegram-бот уведомлений (готово): бот @render_marketplace_bot. Ядро —
+  `src/lib/telegram.ts` (`notifyTelegram(userId, text, button?)` — мягко, никогда
+  не бросает; если бот не настроен или юзер не привязан — молча пропускаем). Поля
+  `User.telegramChatId`/`telegramLinkCode`. Привязка: в кабинете блок
+  `dashboard/TelegramConnect.tsx` → action `createTelegramLink` (генерит код,
+  ссылка `t.me/<bot>?start=<код>`), юзер жмёт Start → вебхук
+  `src/app/api/telegram/webhook/route.ts` ловит `/start <код>`, пишет chatId.
+  Вебхук защищён секретом (заголовок `X-Telegram-Bot-Api-Secret-Token`). `/stop`
+  отключает. Уведомления шлём при новом сообщении (`messages/actions.ts`:
+  `messageUser`, `sendMessage`) и новом отклике (`vacancies/actions.ts`:
+  `applyToVacancy`). Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`,
+  `TELEGRAM_WEBHOOK_SECRET` (в `.env` локально; на проде — в Timeweb). После
+  деплоя зарегистрировать вебхук: `node scripts/set-telegram-webhook.mjs https://САЙТ`
+  (а также `info`/`delete`). Ссылки в уведомлениях берут `SITE_URL` —
+  обязательно задать `NEXT_PUBLIC_SITE_URL` на проде.
 - Деплой: `package.json` → `build` = `prisma generate && prisma migrate deploy &&
   next build` (миграции накатываются на прод-базу при каждой сборке Timeweb), плюс
   `postinstall: prisma generate` (иначе на хостинге не находится сгенерированный
   Prisma-клиент). Переменные окружения в проде: `DATABASE_URL` (Managed
-  PostgreSQL в РФ — НЕ локальный IPv4-обход Neon из `.env`), `AUTH_SECRET`, и для
+  PostgreSQL в РФ — НЕ локальный IPv4-обход Neon из `.env`), `AUTH_SECRET`,
+  `NEXT_PUBLIC_SITE_URL`, телеграм-переменные (см. выше), и для
   хранилища `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`,
   `S3_SECRET_ACCESS_KEY`, при необходимости `S3_PUBLIC_BASE_URL`. После создания
   базы накатить схему: `npx prisma migrate deploy` на новый `DATABASE_URL`.

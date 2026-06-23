@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import LogoutButton from "@/components/LogoutButton";
+import TelegramConnect from "./TelegramConnect";
+import { telegramEnabled } from "@/lib/telegram";
 import { getUnreadConversationIds, countNewApplications } from "@/lib/unread";
 import {
   APPLICATION_STATUS_LABELS,
@@ -62,14 +64,13 @@ export default async function DashboardPage() {
     ? 0
     : await countNewApplications(session.user.id);
 
-  // Админ видит ссылку на модерацию.
-  const isAdmin =
-    (
-      await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { isAdmin: true },
-      })
-    )?.isAdmin ?? false;
+  // Флаги аккаунта: админ (ссылка на модерацию) и привязан ли Telegram.
+  const account = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true, telegramChatId: true },
+  });
+  const isAdmin = account?.isAdmin ?? false;
+  const telegramConnected = !!account?.telegramChatId;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -235,6 +236,10 @@ export default async function DashboardPage() {
               </div>
             )}
           </section>
+        )}
+
+        {telegramEnabled() && (
+          <TelegramConnect connected={telegramConnected} />
         )}
       </main>
     </div>

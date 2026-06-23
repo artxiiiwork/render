@@ -3,6 +3,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { notifyTelegram } from "@/lib/telegram";
+import { SITE_URL } from "@/lib/site";
 import {
   WorkFormat,
   Employment,
@@ -153,6 +155,13 @@ export async function applyToVacancy(vacancyId: string, message: string) {
   await prisma.application.create({
     data: { vacancyId, editorId: session.user.id, message: text },
   });
+
+  // Уведомление работодателю о новом отклике (если подключил Telegram).
+  await notifyTelegram(
+    vacancy.employerId,
+    `📝 Новый отклик на вакансию «${vacancy.title}» от ${session.user.name ?? "монтажёра"}`,
+    { text: "Открыть заявки", url: `${SITE_URL}/applications` }
+  );
 
   revalidatePath(`/vacancies/${vacancyId}`);
   revalidatePath("/dashboard");

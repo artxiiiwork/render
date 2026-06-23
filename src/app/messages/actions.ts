@@ -3,6 +3,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { notifyTelegram } from "@/lib/telegram";
+import { SITE_URL } from "@/lib/site";
 
 // Открыть (или создать) переписку с другим пользователем.
 // Переписка всегда между работодателем и монтажёром.
@@ -79,6 +81,13 @@ export async function messageUser(otherUserId: string, text: string) {
     data: { conversationId: conversation.id, senderId: session.user.id, text: body },
   });
 
+  // Уведомление в Telegram адресату (если подключил).
+  await notifyTelegram(
+    otherUserId,
+    `💬 Новое сообщение на RENDER от ${session.user.name ?? "пользователя"}`,
+    { text: "Открыть чат", url: `${SITE_URL}/messages/${conversation.id}` }
+  );
+
   revalidatePath("/messages");
   revalidatePath(`/messages/${conversation.id}`);
   return { ok: true, id: conversation.id };
@@ -142,6 +151,17 @@ export async function sendMessage(conversationId: string, text: string) {
     where: { id: conversationId },
     data: { updatedAt: new Date() },
   });
+
+  // Уведомление в Telegram второй стороне переписки.
+  const recipientId =
+    conversation.employerId === session.user.id
+      ? conversation.editorId
+      : conversation.employerId;
+  await notifyTelegram(
+    recipientId,
+    `💬 Новое сообщение на RENDER от ${session.user.name ?? "пользователя"}`,
+    { text: "Открыть чат", url: `${SITE_URL}/messages/${conversationId}` }
+  );
 
   revalidatePath(`/messages/${conversationId}`);
   revalidatePath("/messages");
