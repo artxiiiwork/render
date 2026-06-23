@@ -160,3 +160,77 @@ export async function reorderPortfolio(ids: string[]) {
   revalidatePath(`/editors/${profileId}`);
   return { ok: true };
 }
+
+// ── Отзывы ────────────────────────────────────────────────────
+
+// Оставить отзыв можно только тому, с кем была реальная переписка
+// (не считая канала поддержки) и не самому себе. Возвращает id переписки,
+// если она есть, иначе null.
+async function conversationBetween(meId: string, otherId: string) {
+  return prisma.conversation.findFirst({
+    where: {
+      isSupport: false,
+      OR: [
+        { employerId: meId, editorId: otherId },
+        { employerId: otherId, editorId: meId },
+      ],
+    },
+    select: { id: true },
+  });
+}
+
+// Создать или обновить свой отзыв о пользователе (адресат — target).
+// profileId нужен только чтобы обновить кэш страницы профиля монтажёра.
+export async function submitReview(input: {
+  targetUserId: string;
+  profileId: string;
+  rating: number;
+  comment: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Вы не авторизованы" };
+  const me = session.user.id;
+
+  if (me === input.targetUserId) {
+    return { error: "Нельзя оставить отзыв самому себе" };
+  }
+
+  const rating = Math.round(input.rating);
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return { error: "Оценка должна быть от 1 до 5" };
+  }
+
+  const convo = await conversationBetween(me, input.targetUserId);
+  if (!convo) {
+    return {
+      error: "Отзыв можно оставить только тому, с кем у вас была переписка",
+    };
+  }
+
+  const comment = input.comment.trim() || null;
+
+  await prisma.review.upsert({
+    where: { authorId_targetId: { authorId: me, targetId: input.targetUserId } },
+    create: { authorId: me, targetId: input.targetUserId, rating, comment },
+    update: { rating, comment },
+  });
+
+  revalidatePath(`/editors/${input.profileId}`);
+  return { ok: true };
+}
+
+// Удалить свой отзыв.
+export async function deleteReview(input: {
+  targetUserId: string;
+  profileId: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Вы не авторизованы" };
+
+  await prisma.review.deleteMany({
+    where: { authorId: session.user.id, targetId: input.targetUserId },
+  });
+
+  revalidatePath(`/editors/${input.profileId}`);
+  return { ok: true };
+}

@@ -7,10 +7,13 @@ import { prisma } from "@/lib/prisma";
 import { toEmbedUrl, toThumbUrl } from "@/lib/embed";
 import { SITE_URL } from "@/lib/site";
 import Avatar from "@/components/Avatar";
+import Stars from "@/components/Stars";
+import { summarizeRatings, pluralReviews } from "@/lib/reviews";
 import ContactButton from "./ContactButton";
 import ProfileBio from "./ProfileBio";
 import ResumeDetails from "./ResumeDetails";
 import PortfolioGallery from "./PortfolioGallery";
+import Reviews from "./Reviews";
 import {
   WORK_FORMAT_LABELS,
   EDITOR_STATUS_LABELS,
@@ -102,6 +105,39 @@ export default async function EditorProfilePage({
   // Это резюме открыл его владелец? Тогда покажем кнопку добавления роликов.
   const isOwner = !!me && editor.userId === me;
 
+  // Отзывы об этом монтажёре (адресат отзыва — его аккаунт).
+  const reviewRows = await prisma.review.findMany({
+    where: { targetId: editor.userId },
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { name: true } } },
+  });
+  const ratingSummary = summarizeRatings(reviewRows.map((r) => r.rating));
+  const reviewItems = reviewRows.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    authorName: r.author.name,
+    createdAt: r.createdAt.toISOString(),
+    isMine: !!me && r.authorId === me,
+  }));
+  const myReviewItem = reviewItems.find((r) => r.isMine) ?? null;
+
+  // Оставить отзыв можно только тому, с кем была переписка (не себе).
+  let canReview = false;
+  if (me && me !== editor.userId) {
+    const convo = await prisma.conversation.findFirst({
+      where: {
+        isSupport: false,
+        OR: [
+          { employerId: me, editorId: editor.userId },
+          { employerId: editor.userId, editorId: me },
+        ],
+      },
+      select: { id: true },
+    });
+    canReview = !!convo;
+  }
+
   const pay = formatPay(editor.payMin, editor.payMax, editor.payPeriod);
   const sectionLabels = editor.sections.map((s) => SECTION_LABELS[s] ?? s);
   const gameLabels = editor.games.map((g) => GAME_LABELS[g] ?? g);
@@ -163,6 +199,18 @@ export default async function EditorProfilePage({
             </div>
             <p className="mt-1 text-lg text-muted">{editor.headline}</p>
 
+            {ratingSummary.count > 0 && (
+              <div className="mt-3 flex items-center gap-2">
+                <Stars value={ratingSummary.average} size={16} />
+                <span className="num text-sm text-foreground">
+                  {ratingSummary.average.toFixed(1)}
+                </span>
+                <span className="text-sm text-muted">
+                  · {ratingSummary.count} {pluralReviews(ratingSummary.count)}
+                </span>
+              </div>
+            )}
+
             <div className="mt-5">
               {isOwner ? (
                 <Link
@@ -215,6 +263,19 @@ export default async function EditorProfilePage({
                 section: p.section,
               }))}
             />
+
+            <div className="mt-12 border-t border-border pt-8">
+              <Reviews
+                profileId={editor.id}
+                targetUserId={editor.userId}
+                canReview={canReview}
+                isOwner={isOwner}
+                average={ratingSummary.average}
+                count={ratingSummary.count}
+                reviews={reviewItems}
+                myReview={myReviewItem}
+              />
+            </div>
           </section>
         </div>
       </main>

@@ -117,6 +117,10 @@ model User {
   conversationsAsEditor   Conversation[] @relation("EditorConversations")
   // Отправленные сообщения.
   sentMessages Message[]
+
+  // Отзывы: оставленные этим пользователем и полученные о нём.
+  reviewsAuthored Review[] @relation("ReviewsAuthored")
+  reviewsReceived Review[] @relation("ReviewsReceived")
 }
 
 // Резюме монтажёра (соискателя).
@@ -290,4 +294,30 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Отзывы (двусторонние: работодатель ↔ монтажёр)
+// ─────────────────────────────────────────────────────────────
+
+// Отзыв одного пользователя о другом. Оставить можно только тому, с кем была
+// переписка (реальный контакт) — проверяется в server action. Один отзыв на
+// пару «автор → адресат», его можно отредактировать.
+model Review {
+  id String @id @default(cuid())
+
+  authorId String
+  author   User   @relation("ReviewsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+
+  targetId String
+  target   User   @relation("ReviewsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  rating  Int // оценка 1..5
+  comment String? // текст отзыва (необязательно)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([authorId, targetId])
+  @@index([targetId])
 }

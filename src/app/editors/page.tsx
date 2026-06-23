@@ -10,6 +10,8 @@ import MascotSlot from "@/components/MascotSlot";
 import { toThumbUrl } from "@/lib/embed";
 import { formatPay } from "@/lib/labels";
 import { editorQualityScore, isTopEditor } from "@/lib/ranking";
+import { summarizeRatings, ratingBonus } from "@/lib/reviews";
+import Stars from "@/components/Stars";
 import {
   SECTION_OPTIONS,
   SECTION_LABELS,
@@ -103,7 +105,9 @@ export default async function EditorsCatalogPage({
   const matched = await prisma.editorProfile.findMany({
     where,
     include: {
-      user: { select: { name: true } },
+      user: {
+        select: { name: true, reviewsReceived: { select: { rating: true } } },
+      },
       portfolio: {
         orderBy: [{ position: "asc" }, { id: "asc" }],
         take: 1,
@@ -114,23 +118,25 @@ export default async function EditorsCatalogPage({
     take: 500,
   });
 
-  // Балл качества и признак «ТОП» для каждого резюме.
+  // Балл качества (с учётом рейтинга), сводка отзывов и признак «ТОП».
   const ranked = matched.map((e) => {
-    const score = editorQualityScore({
-      headline: e.headline,
-      bio: e.bio,
-      avatarUrl: e.avatarUrl,
-      coverUrl: e.coverUrl,
-      skills: e.skills,
-      software: e.software,
-      sections: e.sections,
-      payMin: e.payMin,
-      experienceYears: e.experienceYears,
-      status: e.status,
-      updatedAt: e.updatedAt,
-      reelCount: e._count.portfolio,
-    });
-    return { ...e, _score: score, _isTop: isTopEditor(score) };
+    const summary = summarizeRatings(e.user.reviewsReceived.map((r) => r.rating));
+    const score =
+      editorQualityScore({
+        headline: e.headline,
+        bio: e.bio,
+        avatarUrl: e.avatarUrl,
+        coverUrl: e.coverUrl,
+        skills: e.skills,
+        software: e.software,
+        sections: e.sections,
+        payMin: e.payMin,
+        experienceYears: e.experienceYears,
+        status: e.status,
+        updatedAt: e.updatedAt,
+        reelCount: e._count.portfolio,
+      }) + ratingBonus(summary);
+    return { ...e, _score: score, _isTop: isTopEditor(score), _rating: summary };
   });
 
   // Сортировка: по ставке (если выбрано) или по качеству профиля.
@@ -496,6 +502,18 @@ export default async function EditorsCatalogPage({
                             </span>
                           </div>
                         </Link>
+
+                        {e._rating.count > 0 && (
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <Stars value={e._rating.average} size={13} />
+                            <span className="num text-xs text-foreground">
+                              {e._rating.average.toFixed(1)}
+                            </span>
+                            <span className="text-xs text-muted">
+                              ({e._rating.count})
+                            </span>
+                          </div>
+                        )}
 
                         {(e.sections.length > 0 || e.games.length > 0) && (
                           <div className="mt-2.5 flex flex-wrap gap-1.5">
