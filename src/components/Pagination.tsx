@@ -11,14 +11,18 @@ export default function Pagination({
   basePath: string;
   page: number;
   totalPages: number;
-  extraParams?: Record<string, string | undefined>;
+  extraParams?: Record<string, string | string[] | undefined>;
 }) {
   if (totalPages <= 1) return null;
 
   function hrefFor(targetPage: number) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(extraParams)) {
-      if (value) params.set(key, value);
+      if (Array.isArray(value)) {
+        for (const v of value) if (v) params.append(key, v);
+      } else if (value) {
+        params.set(key, value);
+      }
     }
     if (targetPage > 1) params.set("page", String(targetPage));
     const qs = params.toString();

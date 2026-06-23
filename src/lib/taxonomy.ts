@@ -3,13 +3,27 @@
 // Vacancy.sections/games, PortfolioLink.section). Здесь — допустимые значения и
 // человеческие подписи. Список можно расширять без миграции базы.
 
-// Разделы верхнего уровня.
+// Разделы верхнего уровня (с иконками для ленты разделов в каталоге).
 export const SECTION_OPTIONS = [
-  { value: "GAMES", label: "Игры" },
-  { value: "MOBILE", label: "Мобильный формат" },
-  { value: "YOUTUBE", label: "YouTube — длинные" },
-  { value: "MOTION", label: "Моушн-дизайн" },
-  { value: "CGI3D", label: "3D / CGI" },
+  { value: "GAMES", label: "Игры", icon: "🎮" },
+  { value: "MOBILE", label: "Мобильный формат", icon: "📱" },
+  { value: "YOUTUBE", label: "YouTube-блогинг", icon: "▶️" },
+  { value: "MOTION", label: "Моушн-дизайн", icon: "✨" },
+  { value: "CGI3D", label: "3D / CGI", icon: "🧊" },
+  { value: "INFO", label: "Инфобизнес", icon: "💼" },
+  { value: "PODCAST", label: "Подкасты", icon: "🎙️" },
+  { value: "STREAMS", label: "Нарезки стримов", icon: "✂️" },
+] as const;
+
+// Софт — для фильтра в каталоге. Значения совпадают с тем, что монтажёр
+// указывает в резюме (поле software).
+export const SOFTWARE_OPTIONS = [
+  "Premiere Pro",
+  "After Effects",
+  "DaVinci Resolve",
+  "CapCut",
+  "Final Cut",
+  "Sony Vegas",
 ] as const;
 
 // Подуровень «игра» — только для раздела «Игры». Без дробления по серверам.
