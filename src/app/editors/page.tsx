@@ -228,7 +228,7 @@ export default async function EditorsCatalogPage({
 
         {/* Лента разделов с иконками */}
         <nav className="border-b border-border">
-          <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6 py-2">
+          <div className="no-scrollbar mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6 py-2">
             <Link
               href="/editors"
               className={`${sectionTabBase} ${
@@ -259,7 +259,7 @@ export default async function EditorsCatalogPage({
         {/* Подстрока игр — только в разделе «Игры» */}
         {activeSection === GAMES_SECTION && (
           <div className="border-b border-border bg-surface/40">
-            <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-6 py-2.5">
+            <div className="no-scrollbar mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-6 py-2.5">
               <span className="shrink-0 text-xs uppercase tracking-wider text-faint">
                 Игра
               </span>

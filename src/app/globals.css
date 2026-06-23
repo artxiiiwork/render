@@ -126,3 +126,12 @@ body {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
 }
+
+/* Горизонтальная прокрутка лент (вкладки разделов, чипы игр) без видимой полосы. */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
