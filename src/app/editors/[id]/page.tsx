@@ -9,6 +9,8 @@ import { SITE_URL } from "@/lib/site";
 import Avatar from "@/components/Avatar";
 import Stars from "@/components/Stars";
 import { summarizeRatings, pluralReviews } from "@/lib/reviews";
+import { profileStrength } from "@/lib/profileStrength";
+import ProfileStrength from "./ProfileStrength";
 import ContactButton from "./ContactButton";
 import ProfileBio from "./ProfileBio";
 import ResumeDetails from "./ResumeDetails";
@@ -105,6 +107,8 @@ export default async function EditorProfilePage({
   // Это резюме открыл его владелец? Тогда покажем кнопку добавления роликов.
   const isOwner = !!me && editor.userId === me;
 
+  // «Сила профиля» — только для владельца (считаем после загрузки отзывов ниже).
+
   // Отзывы об этом монтажёре (адресат отзыва — его аккаунт).
   const reviewRows = await prisma.review.findMany({
     where: { targetId: editor.userId },
@@ -121,6 +125,21 @@ export default async function EditorProfilePage({
     isMine: !!me && r.authorId === me,
   }));
   const myReviewItem = reviewItems.find((r) => r.isMine) ?? null;
+
+  // «Сила профиля» считается только для владельца (показываем ему панель-подсказку).
+  const strength = isOwner
+    ? profileStrength({
+        avatarUrl: editor.avatarUrl,
+        coverUrl: editor.coverUrl,
+        bio: editor.bio,
+        sections: editor.sections,
+        software: editor.software,
+        skills: editor.skills,
+        payMin: editor.payMin,
+        reelCount: editor.portfolio.length,
+        hasReviews: ratingSummary.count > 0,
+      })
+    : null;
 
   // Оставить отзыв можно только тому, с кем была переписка (не себе).
   let canReview = false;
@@ -227,6 +246,13 @@ export default async function EditorProfilePage({
                 />
               )}
             </div>
+
+            {/* Сила профиля — подсказка только владельцу */}
+            {strength && (
+              <div className="mt-6">
+                <ProfileStrength strength={strength} />
+              </div>
+            )}
 
             {/* О себе + кнопка «Подробнее» (вся остальная инфо — в модальном окне) */}
             <div className="mt-7 space-y-5 border-t border-border pt-6">
