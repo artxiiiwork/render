@@ -9,6 +9,7 @@ import Pagination from "@/components/Pagination";
 import MascotSlot from "@/components/MascotSlot";
 import { toThumbUrl } from "@/lib/embed";
 import { formatPay } from "@/lib/labels";
+import { editorQualityScore, isTopEditor } from "@/lib/ranking";
 import {
   SECTION_OPTIONS,
   SECTION_LABELS,
@@ -96,16 +97,10 @@ export default async function EditorsCatalogPage({
     ];
   }
 
-  const orderBy: Prisma.EditorProfileOrderByWithRelationInput =
-    sort === "pay_desc"
-      ? { payMin: { sort: "desc", nulls: "last" } }
-      : sort === "pay_asc"
-        ? { payMin: { sort: "asc", nulls: "last" } }
-        : { updatedAt: "desc" };
-
-  const total = await prisma.editorProfile.count({ where });
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  const editors = await prisma.editorProfile.findMany({
+  // Сортировка «По релевантности» считает качество профиля в коде, поэтому
+  // тянем подходящие резюме разом (с запасом) и ранжируем в памяти. Для MVP
+  // объёмов этого достаточно; при росте базы перейдём на хранимый балл.
+  const matched = await prisma.editorProfile.findMany({
     where,
     include: {
       user: { select: { name: true } },
@@ -114,11 +109,49 @@ export default async function EditorsCatalogPage({
         take: 1,
         select: { url: true },
       },
+      _count: { select: { portfolio: true } },
     },
-    orderBy,
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
+    take: 500,
   });
+
+  // Балл качества и признак «ТОП» для каждого резюме.
+  const ranked = matched.map((e) => {
+    const score = editorQualityScore({
+      headline: e.headline,
+      bio: e.bio,
+      avatarUrl: e.avatarUrl,
+      coverUrl: e.coverUrl,
+      skills: e.skills,
+      software: e.software,
+      sections: e.sections,
+      payMin: e.payMin,
+      experienceYears: e.experienceYears,
+      status: e.status,
+      updatedAt: e.updatedAt,
+      reelCount: e._count.portfolio,
+    });
+    return { ...e, _score: score, _isTop: isTopEditor(score) };
+  });
+
+  // Сортировка: по ставке (если выбрано) или по качеству профиля.
+  ranked.sort((a, b) => {
+    if (sort === "pay_desc" || sort === "pay_asc") {
+      const av = a.payMin;
+      const bv = b.payMin;
+      // null-ставки — всегда в конце.
+      if (av == null && bv == null) return b._score - a._score;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return sort === "pay_desc" ? bv - av : av - bv;
+    }
+    // По релевантности: выше балл, при равенстве — свежее.
+    if (b._score !== a._score) return b._score - a._score;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
+
+  const total = ranked.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const editors = ranked.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Подписи активного раздела/игры для заголовка.
   const sectionLabel = activeSection ? SECTION_LABELS[activeSection] : null;
@@ -425,6 +458,11 @@ export default async function EditorsCatalogPage({
                                 "linear-gradient(150deg, #3a1191, #1c0e3e)",
                             }}
                           />
+                        )}
+                        {e._isTop && (
+                          <span className="absolute left-2.5 top-2.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-on-accent shadow-lg">
+                            ТОП
+                          </span>
                         )}
                         <span className="absolute inset-0 flex items-center justify-center">
                           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white transition group-hover:bg-black/60">
