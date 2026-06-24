@@ -137,7 +137,7 @@ export default async function VacancyPage({
         ? "Удалённо"
         : "—",
   });
-  if (pay) rows.push({ label: "Оплата", value: pay });
+  rows.push({ label: "Оплата", value: pay ?? "Договорная" });
 
   return (
     <div className="flex min-h-full flex-col">

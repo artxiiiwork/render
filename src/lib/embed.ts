@@ -35,6 +35,25 @@ export function toEmbedUrl(url: string): string | null {
   return null;
 }
 
+// Канонический ключ ролика для дедупликации. Одинаковые ролики, записанные
+// разными формами ссылки (youtu.be, watch?v=, embed/…), дают один ключ.
+export function videoKey(url: string): string {
+  const yt = youtubeId(url);
+  if (yt) return `yt:${yt}`;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host.endsWith("vimeo.com")) {
+      const m = u.pathname.match(/\/(\d+)/);
+      if (m) return `vimeo:${m[1]}`;
+    }
+    // Прочее — нормализуем: хост + путь без хвостового слэша (без query/хэша).
+    return `url:${host}${u.pathname.replace(/\/$/, "")}`.toLowerCase();
+  } catch {
+    return `raw:${url.trim().toLowerCase()}`;
+  }
+}
+
 // Обложка-превью ролика для карточек каталога и лендинга. Пока только YouTube —
 // у него стабильные предсказуемые адреса превью. Для остального вернём null
 // (карточка покажет аккуратную заглушку).

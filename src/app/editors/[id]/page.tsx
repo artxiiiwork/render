@@ -39,6 +39,7 @@ export async function generateMetadata({
       headline: true,
       bio: true,
       sections: true,
+      games: true,
       coverUrl: true,
       avatarUrl: true,
       user: { select: { name: true } },
@@ -51,25 +52,42 @@ export async function generateMetadata({
   });
   if (!editor) return { title: "Монтажёр не найден" };
 
-  const sectionLabels = editor.sections
-    .map((s) => SECTION_LABELS[s] ?? s)
-    .join(", ");
-  const title = `${editor.user.name} — ${editor.headline}`;
-  const description = editor.bio
-    ? editor.bio.slice(0, 155)
-    : `${editor.headline}${sectionLabels ? ` · ${sectionLabels}` : ""}. Монтажёр на RENDER — шоурил, ставка, контакт.`;
+  // Ниши: разделы + игры человеческими подписями, через запятую.
+  const sectionLabels = editor.sections.map((s) => SECTION_LABELS[s] ?? s);
+  const gameLabels = editor.games.map((g) => GAME_LABELS[g] ?? g);
+  const tax = [...sectionLabels, ...gameLabels].join(", ");
+
+  // Заголовок: «Имя — Специализация, видеомонтажёр Ниши | RENDER».
+  // absolute обходит шаблон «%s — RENDER» из layout, чтобы не дублировать бренд.
+  const title = `${editor.user.name} — ${editor.headline}${
+    tax ? `, видеомонтажёр ${tax}` : ""
+  } | RENDER`;
+
+  // Описание: выжимка «о себе» + ниши, не длиннее 160 символов.
+  let description = [editor.bio?.trim(), tax ? `Ниши: ${tax}.` : ""]
+    .filter(Boolean)
+    .join(" ");
+  if (!description) {
+    description = `${editor.headline} — видеомонтажёр на RENDER. Шоурил, ставка, прямой контакт.`;
+  }
+  if (description.length > 160) {
+    description = description.slice(0, 159).trimEnd() + "…";
+  }
+
+  // og:image — обложка профиля, иначе аватар, иначе превью первого ролика.
   const ogImage =
     editor.coverUrl ||
     editor.avatarUrl ||
     (editor.portfolio[0] ? toThumbUrl(editor.portfolio[0].url) : null);
+  const canonical = `${SITE_URL}/editors/${id}`;
 
   return {
-    title,
+    title: { absolute: title },
     description,
-    alternates: { canonical: `/editors/${id}` },
+    alternates: { canonical },
     openGraph: {
       type: "profile",
-      url: `${SITE_URL}/editors/${id}`,
+      url: canonical,
       title,
       description,
       images: ogImage ? [ogImage] : undefined,

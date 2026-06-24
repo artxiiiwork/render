@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { SECTION_VALUES } from "@/lib/taxonomy";
+import { videoKey } from "@/lib/embed";
 
 // Раздел ролика: допустимое значение или null.
 function cleanSection(section: string | null): string | null {
@@ -38,10 +39,19 @@ export async function addPortfolioLink(input: {
     return { error: "Сначала заполните резюме" };
   }
 
-  // Новый ролик встаёт в конец галереи.
-  const count = await prisma.portfolioLink.count({
+  // Дедупликация: не добавляем ролик, который уже есть в портфолио
+  // (защищает и от повторного клика, и от той же ссылки в другой форме).
+  const existing = await prisma.portfolioLink.findMany({
     where: { editorProfileId: profile.id },
+    select: { url: true },
   });
+  const newKey = videoKey(url);
+  if (existing.some((e) => videoKey(e.url) === newKey)) {
+    return { error: "Этот ролик уже добавлен в портфолио" };
+  }
+
+  // Новый ролик встаёт в конец галереи.
+  const count = existing.length;
 
   await prisma.portfolioLink.create({
     data: {

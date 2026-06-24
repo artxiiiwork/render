@@ -96,7 +96,7 @@ export default async function Home() {
               </Link>
             </div>
             <div className="mt-8 flex gap-7 border-t border-border pt-5">
-              <Stat value="12 ниш" label="SAMP · CS2 · 3D" />
+              <Stat value={`${SECTION_OPTIONS.length} ниш`} label="SAMP · CS2 · 3D" />
               <Stat value="0%" label="комиссии" />
               <Stat value="без логина" label="каталог открыт" />
             </div>
@@ -204,6 +204,41 @@ export default async function Home() {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Как это работает — объясняем механизм контакта */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-10">
+        <span className="eyebrow">Как это работает</span>
+        <h2 className="mt-3 font-display text-2xl font-bold sm:text-3xl">
+          Без посредников и комиссий
+        </h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              n: "1",
+              title: "Монтажёр публикует резюме",
+              text: "Заполняет профиль и добавляет шоурил — видно, как он режет, ещё до первого сообщения.",
+            },
+            {
+              n: "2",
+              title: "Работодатель нажимает «Связаться»",
+              text: "Смотрит работы в каталоге, выбирает подходящего и пишет ему первое сообщение прямо с профиля.",
+            },
+            {
+              n: "3",
+              title: "Открывается переписка на сайте",
+              text: "Дальше общаетесь и договариваетесь напрямую во встроенном чате. Уведомления о новых сообщениях приходят и в Telegram.",
+            },
+          ].map((s) => (
+            <div key={s.n} className="panel flex flex-col p-6">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-base font-bold text-on-accent">
+                {s.n}
+              </span>
+              <h3 className="mt-4 font-display text-lg font-bold">{s.title}</h3>
+              <p className="mt-1.5 text-sm text-muted">{s.text}</p>
+            </div>
+          ))}
         </div>
       </section>
 

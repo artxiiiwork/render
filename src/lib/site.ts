@@ -1,8 +1,9 @@
 // Базовый адрес сайта — для абсолютных ссылок в метаданных, Open Graph,
-// sitemap и robots. На проде задаём переменную NEXT_PUBLIC_SITE_URL
-// (например https://render.ru); локально — localhost.
+// sitemap и robots. На проде задаём переменную NEXT_PUBLIC_SITE_URL; если её
+// вдруг нет в сборке — подстраховываемся реальным боевым доменом (НЕ localhost,
+// иначе ломается canonical/og:url в поисковиках).
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://artxiiiwork-render-cd2e.twc1.net"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "RENDER";
