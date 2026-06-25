@@ -337,11 +337,14 @@ export default function EditEditorForm({ initial }: Props) {
       />
 
       <ImageUpload
-        label="Обложка профиля"
+        label="Обложка-баннер профиля"
         shape="square"
         value={coverUrl}
         onChange={setCoverUrl}
-        hint="Широкое фото-шапка сверху резюме. Лучше горизонтальное, до 5 МБ"
+        requiredRatio={4}
+        minWidth={1200}
+        sizeLabel="1600 × 400 px (4:1)"
+        hint="Баннер-шапка сверху резюме. Размер строго 1600 × 400 px (горизонтальный, соотношение 4:1). JPG/PNG/WEBP, до 5 МБ."
       />
 
       <div>

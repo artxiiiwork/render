@@ -8,7 +8,29 @@ type Props = {
   onChange: (url: string) => void;
   shape?: "circle" | "square";
   hint?: string;
+  // Требование к пиксельным размерам (для баннера). Если задано — перед
+  // загрузкой проверяем пропорцию и минимальную ширину файла.
+  requiredRatio?: number; // ширина / высота, например 4 для 4:1
+  minWidth?: number; // минимальная ширина в пикселях
+  sizeLabel?: string; // подпись размера для сообщений, например "1600 × 400 px (4:1)"
 };
+
+// Узнать пиксельные размеры выбранного файла-картинки.
+function readImageSize(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("bad image"));
+    };
+    img.src = url;
+  });
+}
 
 // Выбор картинки с компьютера: загружает файл и отдаёт ссылку наверх.
 export default function ImageUpload({
@@ -17,15 +39,52 @@ export default function ImageUpload({
   onChange,
   shape = "circle",
   hint,
+  requiredRatio,
+  minWidth,
+  sizeLabel,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
+  function resetInput() {
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError("");
+
+    // Строгая проверка размеров баннера до загрузки.
+    if (requiredRatio) {
+      let dims: { width: number; height: number };
+      try {
+        dims = await readImageSize(file);
+      } catch {
+        setError("Не удалось прочитать изображение");
+        resetInput();
+        return;
+      }
+      const { width, height } = dims;
+      const ratio = width / height;
+      // Допуск ±4% по пропорции — чтобы не придираться к 1 пикселю.
+      if (Math.abs(ratio - requiredRatio) > requiredRatio * 0.04) {
+        setError(
+          `Баннер должен быть ${sizeLabel ?? "правильной пропорции"}. У вашего файла — ${width}×${height} px. Обрежьте до нужной пропорции и загрузите снова.`
+        );
+        resetInput();
+        return;
+      }
+      if (minWidth && width < minWidth) {
+        setError(
+          `Баннер слишком маленький: нужна ширина от ${minWidth} px (рекомендуем ${sizeLabel ?? ""}). У вашего файла — ${width}×${height} px.`
+        );
+        resetInput();
+        return;
+      }
+    }
+
     setUploading(true);
 
     const fd = new FormData();
