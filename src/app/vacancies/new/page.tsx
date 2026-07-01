@@ -9,6 +9,9 @@ export default async function NewVacancyPage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+  if (!session.user.role) {
+    redirect("/welcome");
+  }
   // Размещать вакансии могут только работодатели.
   if (session.user.role !== "EMPLOYER") {
     redirect("/dashboard");

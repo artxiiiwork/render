@@ -5,7 +5,8 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: string;
+      // Роль может отсутствовать сразу после соцвхода (до выбора на /welcome).
+      role?: string;
     } & DefaultSession["user"];
   }
 

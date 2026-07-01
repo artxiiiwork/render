@@ -95,12 +95,16 @@ enum ApplicationStatus {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String // хранится зашифрованный пароль, не сам пароль
+  passwordHash String? // зашифрованный пароль; НЕТ у входа через соцсети
   name         String
-  role         Role
+  role         Role? // роль; у соцвхода выбирается после первого входа (/welcome)
   isAdmin      Boolean  @default(false) // администратор платформы (модерация)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Вход через соцсети (Яндекс / ВКонтакте): какой провайдер и id аккаунта в нём.
+  oauthProvider String?
+  oauthId       String?
 
   // Уведомления в Telegram: chatId — куда слать (после привязки), linkCode —
   // одноразовый код для привязки через /start <code> у бота.
@@ -126,6 +130,9 @@ model User {
   // Отзывы: оставленные этим пользователем и полученные о нём.
   reviewsAuthored Review[] @relation("ReviewsAuthored")
   reviewsReceived Review[] @relation("ReviewsReceived")
+
+  // Один аккаунт соцсети — один пользователь.
+  @@unique([oauthProvider, oauthId])
 }
 
 // Резюме монтажёра (соискателя).

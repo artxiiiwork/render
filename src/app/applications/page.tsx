@@ -11,6 +11,9 @@ export default async function ApplicationsPage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+  if (!session.user.role) {
+    redirect("/welcome");
+  }
   // Страница заявок — для работодателя.
   if (session.user.role !== "EMPLOYER") {
     redirect("/dashboard");

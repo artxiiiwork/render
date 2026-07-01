@@ -149,6 +149,17 @@ RENDER — **доска вакансий и резюме** для видеомо
   деплоя зарегистрировать вебхук: `node scripts/set-telegram-webhook.mjs https://САЙТ`
   (а также `info`/`delete`). Ссылки в уведомлениях берут `SITE_URL` —
   обязательно задать `NEXT_PUBLIC_SITE_URL` на проде.
+- Вход через соцсети (готово): Яндекс ID и ВКонтакте — встроенные провайдеры
+  next-auth (`src/auth.ts`, включаются только если заданы `YANDEX_CLIENT_ID/SECRET`,
+  `VK_CLIENT_ID/SECRET`). `User.passwordHash` и `User.role` теперь nullable, есть
+  `oauthProvider`/`oauthId` (`@@unique`). При соцвходе в jwt-callback находим/заводим
+  пользователя (по oauthProvider+oauthId или email), роль оставляем пустой. Роль
+  выбирается ПОСЛЕ входа на `/welcome` (`welcome/actions.ts` → `chooseRole` ставит
+  роль + заводит профиль + `unstable_update` обновляет токен). Кабинетные страницы
+  редиректят на `/welcome`, если роль не выбрана. Кнопки соцвхода — `SocialButtons.tsx`
+  (клиент) на `/login` и `/register` (страницы стали серверными, формы вынесены в
+  `LoginForm`/`RegisterForm`); список включённых провайдеров — `src/lib/socialProviders.ts`.
+  Redirect URI у провайдеров: `<site>/api/auth/callback/yandex` и `.../vk`.
 - Деплой: `package.json` → `build` = `prisma generate && prisma migrate deploy &&
   next build` (миграции накатываются на прод-базу при каждой сборке Timeweb), плюс
   `postinstall: prisma generate` (иначе на хостинге не находится сгенерированный

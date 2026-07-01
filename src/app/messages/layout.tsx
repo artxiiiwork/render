@@ -16,6 +16,9 @@ export default async function MessagesLayout({
   if (!session?.user?.id) {
     redirect("/login");
   }
+  if (!session.user.role) {
+    redirect("/welcome");
+  }
   const me = session.user.id;
 
   const conversations = await prisma.conversation.findMany({

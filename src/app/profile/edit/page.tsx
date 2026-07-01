@@ -23,6 +23,10 @@ export default async function EditProfilePage() {
   if (!user) {
     redirect("/login");
   }
+  // Соцвход без выбранной роли — сперва выбрать роль.
+  if (!user.role) {
+    redirect("/welcome");
+  }
 
   const isEditor = user.role === "EDITOR";
 

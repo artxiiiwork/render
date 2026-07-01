@@ -30,6 +30,10 @@ export default async function DashboardPage() {
   if (!session?.user) {
     redirect("/login");
   }
+  // Соцвход без выбранной роли — на экран выбора роли.
+  if (!session.user.role) {
+    redirect("/welcome");
+  }
 
   const isEditor = session.user.role === "EDITOR";
 
