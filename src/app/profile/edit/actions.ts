@@ -10,6 +10,7 @@ import {
   EmployerType,
 } from "@prisma/client";
 import { SECTION_VALUES, GAME_VALUES, GAMES_SECTION } from "@/lib/taxonomy";
+import { videoKey } from "@/lib/embed";
 
 // Допустимые значения справочников (берём прямо из базы — не разойдутся).
 const WORK_FORMATS = Object.values(WorkFormat) as string[];
@@ -70,9 +71,37 @@ export async function saveEditorProfile(input: {
   const status = STATUSES.includes(input.status)
     ? (input.status as EditorStatus)
     : EditorStatus.SEEKING;
-  const portfolio = input.portfolio
-    .filter((p) => p.url.trim())
-    .map((p) => ({ url: p.url.trim(), title: p.title.trim() || null }));
+  // Портфолио: убираем пустые строки и дубли (один и тот же ролик в разных
+  // формах ссылки — youtu.be / watch?v= — считается одним), а раздел ролика,
+  // выставленный на странице резюме, сохраняем — иначе редактирование резюме
+  // стирало бы разметку по разделам и порядок галереи.
+  const existing = await prisma.portfolioLink.findMany({
+    where: { editorProfile: { userId: session.user.id } },
+    select: { url: true, section: true },
+  });
+  const sectionByKey = new Map(
+    existing.map((l) => [videoKey(l.url), l.section])
+  );
+  const seen = new Set<string>();
+  const portfolio: {
+    url: string;
+    title: string | null;
+    section: string | null;
+    position: number;
+  }[] = [];
+  for (const p of input.portfolio) {
+    const url = p.url.trim();
+    if (!url) continue;
+    const key = videoKey(url);
+    if (seen.has(key)) continue; // дубль — пропускаем
+    seen.add(key);
+    portfolio.push({
+      url,
+      title: p.title.trim() || null,
+      section: sectionByKey.get(key) ?? null,
+      position: portfolio.length,
+    });
+  }
 
   await prisma.editorProfile.update({
     where: { userId: session.user.id },

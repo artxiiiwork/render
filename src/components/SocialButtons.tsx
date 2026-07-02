@@ -44,6 +44,20 @@ export default function SocialButtons({
           </button>
         ))}
       </div>
+
+      {/* Согласие на обработку ПДн (152-ФЗ) — для входа через соцсети. */}
+      <p className="mt-3 text-center text-xs text-faint">
+        Входя через соцсеть, вы соглашаетесь на обработку персональных данных и
+        принимаете{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          className="text-muted underline transition hover:text-foreground"
+        >
+          Политику
+        </a>
+        .
+      </p>
     </div>
   );
 }

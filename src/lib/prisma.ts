@@ -23,14 +23,18 @@ function isWakingUp(e: unknown): boolean {
   // лежать в errorCode, в code, либо вообще не заполняться — тогда ловим по
   // тексту сообщения. (Раньше проверяли только errorCode — а он у ошибки
   // инициализации приходит пустым, и повтор не срабатывал.)
+  // P2024 — «не дождались соединения из пула»: случается, пока база
+  // просыпается (соединения висят, пул исчерпан) — тоже повторяем.
   const code =
     e instanceof Prisma.PrismaClientInitializationError
       ? e.errorCode
       : (e as { code?: string })?.code;
-  if (code === "P1001") return true;
+  if (code === "P1001" || code === "P2024") return true;
   const msg = e instanceof Error ? e.message : "";
   return (
-    msg.includes("P1001") || msg.includes("Can't reach database server")
+    msg.includes("P1001") ||
+    msg.includes("Can't reach database server") ||
+    msg.includes("connection pool")
   );
 }
 
