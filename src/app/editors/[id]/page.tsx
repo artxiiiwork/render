@@ -160,7 +160,8 @@ export default async function EditorProfilePage({
     hasReviews: ratingSummary.count > 0,
   });
 
-  // Публичные значки-достижения.
+  // Публичные значки-достижения. «Основатель» из общего ряда убираем —
+  // он показывается отдельным чипом прямо у имени.
   const badges = editorBadges({
     reelCount: editor.portfolio.length,
     reviewCount: ratingSummary.count,
@@ -237,6 +238,14 @@ export default async function EditorProfilePage({
               <h1 className="font-display text-3xl font-extrabold">
                 {editor.user.name}
               </h1>
+              {editor.isFounder && (
+                <span
+                  title="Один из первых монтажёров RENDER"
+                  className="rounded-full border border-accent/60 bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-light"
+                >
+                  🏆 Основатель
+                </span>
+              )}
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                   EDITOR_STATUS_STYLES[editor.status]

@@ -15,10 +15,16 @@ export type BadgeInput = {
   experienceYears: number | null;
   status: string;
   strengthPercent?: number; // если известна «сила профиля» (есть не везде)
+  isFounder?: boolean; // почётный бейдж первых монтажёров площадки
 };
 
 export function editorBadges(input: BadgeInput): Badge[] {
   const badges: Badge[] = [];
+
+  // «Основатель» — самый почётный, всегда первый.
+  if (input.isFounder) {
+    badges.push({ key: "founder", label: "Основатель", icon: "🏆" });
+  }
 
   // Отзывы: «Рекомендуют» — сильный сигнал, иначе просто «Есть отзывы».
   if (input.reviewCount >= 3 && input.avgRating >= 4.5) {

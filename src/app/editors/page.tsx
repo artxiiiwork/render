@@ -145,6 +145,7 @@ export default async function EditorsCatalogPage({
       avgRating: summary.average,
       experienceYears: e.experienceYears,
       status: e.status,
+      isFounder: e.isFounder,
     }).filter((b) => b.key !== "open");
     return {
       ...e,

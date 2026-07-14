@@ -30,10 +30,12 @@ export async function generateMetadata({
     select: {
       title: true,
       description: true,
+      sections: true,
+      games: true,
       employer: {
         select: {
           name: true,
-          employerProfile: { select: { displayName: true } },
+          employerProfile: { select: { displayName: true, logoUrl: true } },
         },
       },
     },
@@ -42,20 +44,41 @@ export async function generateMetadata({
 
   const employerName =
     vacancy.employer.employerProfile?.displayName ?? vacancy.employer.name;
-  const title = `${vacancy.title} — вакансия монтажёра`;
-  const description = `${employerName}: ${vacancy.description.slice(0, 150)}`;
+
+  // Ниши вакансии — в заголовок и описание (как у профилей монтажёров).
+  const tax = [
+    ...vacancy.sections.map((s) => SECTION_LABELS[s] ?? s),
+    ...vacancy.games.map((g) => GAME_LABELS[g] ?? g),
+  ].join(", ");
+  const title = `${vacancy.title} — вакансия видеомонтажёра${
+    tax ? ` (${tax})` : ""
+  } | RENDER`;
+
+  let description = `${employerName}: ${vacancy.description}`;
+  if (description.length > 160) {
+    description = description.slice(0, 159).trimEnd() + "…";
+  }
+
+  const ogImage = vacancy.employer.employerProfile?.logoUrl || null;
+  const canonical = `${SITE_URL}/vacancies/${id}`;
 
   return {
-    title,
+    title: { absolute: title },
     description,
-    alternates: { canonical: `/vacancies/${id}` },
+    alternates: { canonical },
     openGraph: {
       type: "article",
-      url: `${SITE_URL}/vacancies/${id}`,
+      url: canonical,
       title,
       description,
+      images: ogImage ? [ogImage] : undefined,
     },
-    twitter: { card: "summary", title, description },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
   };
 }
 

@@ -70,10 +70,23 @@ export default function EditEditorForm({ initial }: Props) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function toggle(list: string[], setList: (v: string[]) => void, value: string) {
-    setList(
-      list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
-    );
+  // Лимит выбора ниш: монтажёр указывает то, в чём действительно силён,
+  // а не «всё подряд» — так каталог остаётся честным.
+  const MAX_SECTIONS = 3;
+  const MAX_GAMES = 3;
+
+  function toggle(
+    list: string[],
+    setList: (v: string[]) => void,
+    value: string,
+    max?: number
+  ) {
+    if (list.includes(value)) {
+      setList(list.filter((v) => v !== value));
+      return;
+    }
+    if (max && list.length >= max) return; // лимит достигнут — не добавляем
+    setList([...list, value]);
   }
 
   function updatePortfolio(i: number, field: "url" | "title", value: string) {
@@ -151,36 +164,56 @@ export default function EditEditorForm({ initial }: Props) {
       </div>
 
       <div>
-        <Label>Разделы / ниши (можно несколько)</Label>
+        <Label>
+          Разделы / ниши{" "}
+          <span className="text-muted/60">
+            (до {MAX_SECTIONS} — выбрано {sections.length})
+          </span>
+        </Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {SECTION_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggle(sections, setSections, opt.value)}
-              className={boxClass(sections.includes(opt.value))}
-            >
-              {opt.label}
-            </button>
-          ))}
+          {SECTION_OPTIONS.map((opt) => {
+            const active = sections.includes(opt.value);
+            const full = !active && sections.length >= MAX_SECTIONS;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggle(sections, setSections, opt.value, MAX_SECTIONS)}
+                disabled={full}
+                className={`${boxClass(active)} ${full ? "opacity-40" : ""}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Подуровень «игра» — только если выбран раздел «Игры». */}
       {sections.includes(GAMES_SECTION) && (
         <div>
-          <Label>Игры (для раздела «Игры»)</Label>
+          <Label>
+            Игры (для раздела «Игры»){" "}
+            <span className="text-muted/60">
+              (до {MAX_GAMES} — выбрано {games.length})
+            </span>
+          </Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {GAME_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => toggle(games, setGames, opt.value)}
-                className={boxClass(games.includes(opt.value))}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {GAME_OPTIONS.map((opt) => {
+              const active = games.includes(opt.value);
+              const full = !active && games.length >= MAX_GAMES;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggle(games, setGames, opt.value, MAX_GAMES)}
+                  disabled={full}
+                  className={`${boxClass(active)} ${full ? "opacity-40" : ""}`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

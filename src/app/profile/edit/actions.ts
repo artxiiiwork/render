@@ -53,10 +53,13 @@ export async function saveEditorProfile(input: {
   }
 
   // Оставляем только допустимые значения и чистим списки от пустого.
-  const sections = input.sections.filter((s) => SECTION_VALUES.includes(s));
+  // Ниши ограничены: до 3 разделов и до 3 игр (то же ограничение в форме).
+  const sections = input.sections
+    .filter((s) => SECTION_VALUES.includes(s))
+    .slice(0, 3);
   // игры — только если выбран раздел «Игры».
   const games = sections.includes(GAMES_SECTION)
-    ? input.games.filter((g) => GAME_VALUES.includes(g))
+    ? input.games.filter((g) => GAME_VALUES.includes(g)).slice(0, 3)
     : [];
   const workFormats = input.workFormats.filter((f) =>
     WORK_FORMATS.includes(f)

@@ -160,6 +160,10 @@ model EditorProfile {
   remote Boolean      @default(true) // готов работать удалённо
   status EditorStatus @default(SEEKING) // доступность
 
+  // «Основатель» — почётный бейдж первых монтажёров площадки.
+  // Выдаётся вручную: node scripts/grant-founder.mjs <email>
+  isFounder Boolean @default(false)
+
   // Модерация резюме.
   moderation ModerationStatus @default(PENDING)
 
